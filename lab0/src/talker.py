@@ -21,7 +21,7 @@ def talker():
     i = 0
     while not rospy.is_shutdown():
         # Create and publish the message.
-        msg = "hello for the " + str(i) + "th time "
+        msg = "anything but hello for the " + str(i) + "th time "
         rospy.loginfo(msg)
         pub.publish(msg)
         i += 1

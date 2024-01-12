@@ -4,7 +4,7 @@ from std_msgs.msg import String
 
 def chatter_callback(msg):
     recv_data = msg.data
-    recv_data += " received"
+    recv_data += "received."
     rospy.loginfo(rospy.get_caller_id() + " I heard " + recv_data)
 
 def listener():
