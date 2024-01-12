@@ -11,7 +11,7 @@ def talker():
     # use rostopic list to get the exact name of the topic.
     # Use rostopic info '<topic_name>' to get the message type
     # Add dependency in package.xml
-    # Queue size is the buffer subscriber will get messages will get message from the buffer.
+    # Queue size is the buffer from where subscirber will the message.
     pub = rospy.Publisher("chatter", String, queue_size=10)
     
     # 3. Do something X times per second.
@@ -22,6 +22,7 @@ def talker():
     while not rospy.is_shutdown():
         # Create and publish the message.
         msg = "hello for the " + str(i) + "th time "
+        rospy.loginfo(msg)
         pub.publish(msg)
         i += 1
 
