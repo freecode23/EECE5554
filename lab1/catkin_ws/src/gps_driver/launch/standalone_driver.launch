@@ -1,0 +1,9 @@
+<launch>
+    <!-- Define an argument with a default value -->
+    <arg name="port" default="/dev/ttyUSB0"/>
+
+    <!-- Launch the node -->
+    <node name="gps_driver_node" pkg="gps_driver" type="standalone_driver.py" output="screen">
+        <param name="serial_port" value="$(arg port)"/>
+    </node>
+</launch>
