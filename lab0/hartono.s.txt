@@ -1,1 +1,1 @@
-Ubuntu and Git installed
+Ubuntu 20.04 and Git installed
