@@ -16,7 +16,7 @@ def convert_rosbag_to_csv(bag_file, output_csv_file):
 
         for topic, msg, t in bag.read_messages():
             # Change the topic name to match your specific topic
-            if topic == 'gpgga_topic':
+            if topic == '/gps':
                 writer.writerow({
                     'seq': msg.header.seq,
                     'stamp': msg.header.stamp.to_sec(),

@@ -36,27 +36,23 @@ cd ../catkin_ws/
 roscore
 ```
 
-Step 2: In another terminal, run the ROS node that capture the data and publishes for the gpgga topic:
+Step 2: In another terminal, run the ROS node that capture the data and publishes for the '/gps' topic:
 ```
-rosrun gps_driver standalone_driver.py
-```
-or
-```
-roslaunch gps_driver standalone_driver.launch port:=/dev/pts/4 filename=fileA.txt
+roslaunch gps_driver standalone_driver.launch port:=/dev/pts/6 filename=fileA
 ```
 for real GPS data from puck:
 ```
-roslaunch gps_driver standalone_driver.launch port:=/dev/ttyUSB0
+roslaunch gps_driver standalone_driver.launch port:=/dev/ttyUSB0 filename=fileA
 
 Step 3: In another terminal check if messages are correctly published for the topic:
 ```
-rostopic echo gpgga_topic
+rostopic echo /gps
 ```
 
 Step 4: Record as bag file.
 ```
 cd data/
-rosbag record -O gpgga.bag gpgga_topic
+rosbag record -O gpgga.bag /gps
 ```
 
 (Optional) To to replay as if we are publishing again:
