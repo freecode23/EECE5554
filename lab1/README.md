@@ -42,8 +42,11 @@ rosrun gps_driver standalone_driver.py
 ```
 or
 ```
-roslaunch gps_driver standalone_driver.launch port:=/dev/pts/4
+roslaunch gps_driver standalone_driver.launch port:=/dev/pts/4 filename=fileA.txt
 ```
+for real GPS data from puck:
+```
+roslaunch gps_driver standalone_driver.launch port:=/dev/ttyUSB0
 
 Step 3: In another terminal check if messages are correctly published for the topic:
 ```
@@ -68,3 +71,6 @@ Step 6: Save as csv file
 ```
 python3 rosbagUtil.py
 ```
+
+
+To run autograder bash script.sh <repo link>
