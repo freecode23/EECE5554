@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import rospy
 import datetime
-import time
 import utm
 import serial
 import os
+import calendar
+from decimal import Decimal
+
 
 # from <package name>.<folder name> import filename
 from gps_driver.msg import Customgps
@@ -69,37 +71,35 @@ def UTCtoUTCEpoch(inputTimeStr: str):
     hours = int(inputTimeStr[:2])
     minutes = int(inputTimeStr[2:4])
     seconds = int(inputTimeStr[4:6])
-    fractional_seconds = float("0." + inputTimeStr[7:])
-    
+    fractional_seconds = Decimal("0." + inputTimeStr[7:])
+    # print("hours=", hours)
+    # print("minutes=", minutes)
+    # print("seconds=", seconds)
+    # print("fractional_seconds=", fractional_seconds)
     # Calculate the total seconds. This is the seconds since the beginning of the day.
     bodToInputTimeSec = (hours * 3600) + (minutes * 60) + seconds + fractional_seconds
-    # print("inputTimeSinceBODSec=", bodToInputTimeSec)
 
-    # 3. Get time since epoch to the beginning of today.
-    # Get the current time since epoch
-    currTimeSinceEpochSec = time.time()
-    # print("currTimeSinceEpochSec=", currTimeSinceEpochSec)
+    # 2. Get the current UTC time
+    now_utc = datetime.datetime.utcnow()
 
-    # Convert it to a datetime object.
-    currTimeSinceEpochDateTime = datetime.datetime.utcfromtimestamp(currTimeSinceEpochSec)
+    # 3. Strip the time part to get the beginning of the day (midnight)
+    midnight_utc = datetime.datetime(now_utc.year, now_utc.month, now_utc.day)
 
-    # Reset time to midnight - beginning of today.
-    bodDateTime = currTimeSinceEpochDateTime.replace(hour=0, minute=0, second=0, microsecond=0)
+    # 4. Convert back to timestamp (seconds since the Epoch) using calendar.timegm()
+    epochToBODsec = calendar.timegm(midnight_utc.timetuple())
 
-    # Convert beginning of today to duration in seconds since epoch.
-    epochToBODsec  = time.mktime(bodDateTime.timetuple())
-
-    # Compute the input time since epoch.
+    # 5. Compute the input time since epoch.
     inputTimeSinceEpochSec = epochToBODsec + bodToInputTimeSec
-    # print("currentTimeSinceEpochSec", inputTimeSinceEpochSec)
 
-    # Convert total seconds to integer and fractional part to nanoseconds
+    # 6. Convert total seconds to integer and fractional part to nanoseconds
     inputTimeSec = int(inputTimeSinceEpochSec)
-    inputTimeNsec = int((inputTimeSinceEpochSec - inputTimeSec) * 1e9)
+    inputTimeNsec = int(Decimal(inputTimeSinceEpochSec - inputTimeSec) * Decimal('1e9'))
 
-    # print("inputTimeSinceEpochSec - inputTimeSec=", inputTimeSinceEpochSec - inputTimeSec)
-    # print("inputTimeSec", inputTimeSec)
-    # print("inputTimeNsec", inputTimeNsec)
+    # Modulo operation should give seconds since BOD
+    print("inputTimeSinceEpochSec", inputTimeSinceEpochSec)
+    print("inputTimeSec mod=", inputTimeSec%86400)
+    print("inputTimeNsec=", inputTimeNsec)
+
     return [inputTimeSec, inputTimeNsec]
 
 def createOutputFilepath(filename) -> str:
@@ -136,8 +136,7 @@ def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
     if fixQuality == "0":
         print("GPS receiver cannot provide a reliable location fix at that moment.")
         return None
-    
-    UTCfloat = float(gpggaSplit[GPGGA.TIME]) #float
+    UTCstr = gpggaSplit[GPGGA.TIME] #float
     latitude = gpggaSplit[GPGGA.LATITUDE] # use string first then convert to float later
     latDir = gpggaSplit[GPGGA.LATITUDE_DIR] #string
     longitude = gpggaSplit[GPGGA.LONGITUDE] # use string first.
@@ -148,16 +147,17 @@ def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
     # Convert to Signed decimal degree
     latDegDec = degMinstoDegDec(False, latitude)
     longDegDec = degMinstoDegDec(True, longitude)
+    latitudeSigned = latLongSignConvention(latDegDec, latDir)
+    longitudeSigned = latLongSignConvention(longDegDec, longDir)
     # print("\ngpggaSplit=", gpggaSplit)
     # print(f"latitude={latitude}, latDegDec={latDegDec}")
     # print(f"longitude={longitude}, longDegDec={longDegDec}")
-
-    latitudeSigned = latLongSignConvention(latDegDec, latDir)
-    longitudeSigned = latLongSignConvention(longDegDec, longDir)
+    # print(f"longitudeSigned={longitudeSigned}, latitudeSigned={latitudeSigned}")
+    
     utmVals = convertToUTM(latitudeSigned, longitudeSigned)
 
     # Convert to UTC epoch
-    currentTime = UTCtoUTCEpoch(str(UTCfloat))
+    currentTime = UTCtoUTCEpoch(UTCstr)
 
     # Assign all fields to the message object
     customGPSmsg.latitude = latitudeSigned
@@ -171,11 +171,9 @@ def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
     customGPSmsg.gpgga_read = gpggaStr
     customGPSmsg.header.stamp.secs = currentTime[0]
     customGPSmsg.header.stamp.nsecs = currentTime[1]
-
     return customGPSmsg
 
 if __name__ == '__main__':
-    print("Customgps", Customgps)
 
     # 0. init ROS node and publisher.
     rospy.init_node("gps_driver_node")
@@ -222,10 +220,10 @@ if __name__ == '__main__':
 
                 r.sleep()
 
-    except Exception as e:
-        print("Error opening file:", e)
-
     except rospy.ROSInterruptException:
         pass
+    except Exception as e:
+        print("Exception occured:", e)
+
     finally:
         serialPort.close()
