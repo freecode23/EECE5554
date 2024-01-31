@@ -72,10 +72,7 @@ def UTCtoUTCEpoch(inputTimeStr: str):
     minutes = int(inputTimeStr[2:4])
     seconds = int(inputTimeStr[4:6])
     fractional_seconds = Decimal("0." + inputTimeStr[7:])
-    # print("hours=", hours)
-    # print("minutes=", minutes)
-    # print("seconds=", seconds)
-    # print("fractional_seconds=", fractional_seconds)
+
     # Calculate the total seconds. This is the seconds since the beginning of the day.
     bodToInputTimeSec = (hours * 3600) + (minutes * 60) + seconds + fractional_seconds
 
@@ -96,9 +93,7 @@ def UTCtoUTCEpoch(inputTimeStr: str):
     inputTimeNsec = int(Decimal(inputTimeSinceEpochSec - inputTimeSec) * Decimal('1e9'))
 
     # Modulo operation should give seconds since BOD
-    print("inputTimeSinceEpochSec", inputTimeSinceEpochSec)
     print("inputTimeSec mod=", inputTimeSec%86400)
-    print("inputTimeNsec=", inputTimeNsec)
 
     return [inputTimeSec, inputTimeNsec]
 
@@ -111,7 +106,7 @@ def createOutputFilepath(filename) -> str:
     current_directory = os.path.dirname(os.path.realpath(__file__))
 
     # Move up three levels and then into the 'data' directory
-    target_directory = os.path.join(current_directory, '../../../data')
+    target_directory = os.path.join(current_directory, f'../../../data/{filename}/')
 
     # Create the complete filepath.
     filename += '.txt'
@@ -143,20 +138,18 @@ def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
     longDir = gpggaSplit[GPGGA.LONGITUDE_DIR] #string
     hdop = float(gpggaSplit[GPGGA.HDOP]) #float
     altitude = float(gpggaSplit[GPGGA.ALTITUDE])
+
     # Convert to Signed decimal degree
     latDegDec = degMinstoDegDec(False, latitude)
     longDegDec = degMinstoDegDec(True, longitude)
-
     latitudeSigned = latLongSignConvention(latDegDec, latDir)
     longitudeSigned = latLongSignConvention(longDegDec, longDir)
-    # print("\ngpggaSplit=", gpggaSplit)
-    # print(f"latitude={latitude}, latDegDec={latDegDec}")
-    # print(f"longitude={longitude}, longDegDec={longDegDec}")
-    # print(f"longitudeSigned={longitudeSigned}, latitudeSigned={latitudeSigned}")
-
+    
     utmVals = convertToUTM(latitudeSigned, longitudeSigned)
+
     # Convert to UTC epoch
     currentTime = UTCtoUTCEpoch(UTCstr)
+
     # Assign all fields to the message object
     customGPSmsg.latitude = latitudeSigned
     customGPSmsg.longitude = longitudeSigned
@@ -172,7 +165,12 @@ def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
     return customGPSmsg
 
 if __name__ == '__main__':
-
+    # Uncomment this to parse a single line of string:
+    # gpggaStr = '$GPGGA,023458.230,3401.21189,N,11824.67797,W,1,12,1.0,0.0,M,0.0,M,,*70'
+    # customGPSmsg = Customgps()
+    # result = parseGPGGA(gpggaStr, customGPSmsg)
+    # print(result)
+    
     # 0. init ROS node and publisher.
     rospy.init_node("gps_driver_node")
     gpsPub = rospy.Publisher("/gps", Customgps, queue_size=5)
@@ -201,16 +199,17 @@ if __name__ == '__main__':
                     continue
 
                 customGPSmsg.header.seq += 1
-                
-                # 4.2 Parse the string as GPS msg object and publish.
+
+                # 4.2 Write gpggaStr to .txt file.
                 print("\ngpggaStr", gpggaStr)
+                file.write(gpggaStr + '\n')
+                file.flush()
+                
+                
+                # 4.3 Parse the string as GPS msg object and publish.
                 result = parseGPGGA(gpggaStr, customGPSmsg)
                 if not result:
                     continue
-
-                # 4.3 Write gpggaStr to .txt file.
-                file.write(gpggaStr + '\n')
-                file.flush()
 
                 # 4.4 Publish
                 customGPSmsg = result
