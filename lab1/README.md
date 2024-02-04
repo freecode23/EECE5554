@@ -1,4 +1,4 @@
-# Introduction.
+# Introduction
 The aim of lab 1 is to create a program that ingest GPS GPGGA data from a GPS puck, process the data to get the UTM information, and convert the data type to ROS custom message so that it can published as ROS topic. We will also be saving the ROS messages logs to a bag file so we can convert it to .csv file and perform various data analysis.
 # 1. Preliminiary setup to publish GPS data to serial port.
 ## Option A: Using GPS puck
