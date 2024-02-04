@@ -81,7 +81,7 @@ rosbag info openWalk/openWalk.bag.bag
 
 Then we can execute `rostopic echo gppga_topic` again we will see whats being published.
 # Autograder
-To run autograder, cd into the autograder directory inside lab1 directory then run:
+To run autograder, copy the autograder directory inside EECE5554/ directory then run:
 ```
 bash script.sh freecode23
 ```
@@ -101,19 +101,21 @@ screen -ls | grep 'ros_node' | awk -F '.' '{print $1}' | xargs -I {} screen -S {
 screen -ls | grep 'emulator' | awk -F '.' '{print $1}' | xargs -I {} screen -S {} -X quit
 ```
 ### Autograder expected output:
-lat = 34.02019816666667
-long = 118.41129950000001
-easting = 369695.4373543182
-northing = 3765293.4953880184
-zone: 11
-letter = S
-altitude = 0
-hdop = 1
+Time Stamp for Seconds :  9298
+Time Stamp for Nano-Seconds :  230000000.0
+latitude :  34.02019816666667
+longitude :  -118.41129950000001
+easting :  369695.4373543182
+northing :  3765293.4953880184
+zone :  11
+letter :  S
+header :  GPS1_Frame
+hdop: 1.0
+altitude: 0
 
 # Data capture
 
 1. In occluded spot near building or trees: 5 mins stationary (behind snell)
 2. Also do walking here.
-
 3. In open spot without builidng within 10 m radius: 5 mins stationary.
 

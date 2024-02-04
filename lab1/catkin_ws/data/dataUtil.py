@@ -7,9 +7,12 @@ import numpy as np
 from plotly.subplots import make_subplots
 import plotly.express as px
 
+
+IMAGE_EXTENSION = "png"
+
+# Scenario selections:
 STATIONARY = "Stationary"
 WALK = "Walk"
-IMAGE_EXTENSION = "png"
 CHICAGO = "chicago"
 
 scenario = CHICAGO
@@ -22,10 +25,13 @@ if scenario == CHICAGO:
     csv_filepaths = [csv_filepath]
     bag_filepath = f'{filename}/{filename}.bag'
 
+
 else:
     # Replace scenario for plotting.
     filename = f'open{scenario}'
     filename2 = f'occl{scenario}'
+
+    # Get file paths for open and occluded.
     csv_filepath = f'{filename}/{filename}.csv'
     csv_filepath2 = f'{filename2}/{filename2}.csv'
     csv_filepaths = [csv_filepath, csv_filepath2 ]
@@ -56,6 +62,14 @@ def convert_rosbag_to_csv(bag_filepath, csv_filepath):
                     'gpgga_read': msg.gpgga_read
                 })
 
+def getNormalizedNorthingEasting(df: pd.DataFrame):
+    # Subtract the first data point from each data point in the dataset
+    first_point_easting = df.iloc[0]['utm_easting']
+    first_point_northing = df.iloc[0]['utm_northing']
+    df['easting_normalized'] = df['utm_easting'] - first_point_easting
+    df['northing_normalized'] = df['utm_northing'] - first_point_northing
+
+    return df, first_point_easting, first_point_northing
 
 def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, isLineOfBestFit: bool):
     # Initialize figure
@@ -68,12 +82,9 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
     for i, csv_file in enumerate(csv_filepaths):
         # Load data
         df = pd.read_csv(csv_file)
-        print(df)
-        # Subtract the first data point from each data point in the dataset
-        first_point_easting = df.iloc[0]['utm_easting']
-        first_point_northing = df.iloc[0]['utm_northing']
-        df['easting_normalized'] = df['utm_easting'] - first_point_easting
-        df['northing_normalized'] = df['utm_northing'] - first_point_northing
+
+        # Get normalized northing and easting columns.
+        df, first_point_easting, first_point_northing = getNormalizedNorthingEasting(df)
 
         # Calculate the centroids of the normalized data
         centroid_easting = df['easting_normalized'].mean()
@@ -83,32 +94,35 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
         df['easting_diff'] = df['easting_normalized'] - centroid_easting
         df['northing_diff'] = df['northing_normalized'] - centroid_northing
 
+
         # Extract the file name, zone, and letter
-        situation = os.path.splitext(os.path.basename(csv_file))[0].replace(scenario.capitalize(), "")
-        df['situation'] = situation
+        openOrOc = os.path.splitext(os.path.basename(csv_file))[0].replace(scenario.capitalize(), "")
+        df['openOrOc'] = openOrOc
         zone = df['zone'][0]
         letter = df['letter'][0]
         # Append centroid info to the text box content
         textbox_content += f"\
-        {situation}<br>\
+        {openOrOc}<br>\
         Zone:{zone}<br>\
         Letter:{letter}<br>\
         Offset: <br>\
-        East: {(first_point_easting/1000.0):.2f} m<br>\
-        North:{(first_point_northing/1000.0):.2f} m<br>"
+        East: {(first_point_easting/1000.0):.2f} km<br>\
+        North:{(first_point_northing/1000.0):.2f} km<br>"
 
         # Add data to plot
         if isLineOfBestFit:
             # Compute and plot line of best fit
-            m, b = np.polyfit(df['easting_diff'], df['northing_diff'], 1)
+            m, b = np.polyfit(df['northing_diff'], df['easting_diff'], 1)
             fig.add_trace(go.Scatter(
-                x=df['easting_diff'], y=m*df['easting_diff'] + b, 
-                mode='lines', name=f'{situation} Best Fit'))
+                x=df['northing_diff'], 
+                y=m*df['northing_diff'] + b, 
+                mode='lines', 
+                name=f'{openOrOc} Best Fit'))
         
         # Plot scatter points
         fig.add_trace(go.Scatter(
             x=df['northing_diff'], y=df['easting_diff'], 
-            mode='markers', name=situation))
+            mode='markers', name=openOrOc))
 
     # Customize the plot
     fig.update_layout(
@@ -144,18 +158,21 @@ def plotAltitudeVsTime(csv_filepaths: list, plot_filepath: str, scenario: str):
         # Load data
         df = pd.read_csv(csv_file)
 
-        # Extract the file name from the file path and use it as the situation name
+        # Extract the file name from the file path and use it as the openOrOc name
         filename = os.path.splitext(os.path.basename(csv_file))[0]
-        df['situation'] = filename
+        df['openOrOccluded'] = filename
 
         # Append to the combined DataFrame
         combined_df = pd.concat([combined_df, df])
 
-    # Plot Altitude vs Time
+    # Plot Altitude vs Time for open and occluded.
     fig = make_subplots()
-    for situation in combined_df['situation'].unique():
-        dataset = combined_df[combined_df['situation'] == situation]
-        fig.add_trace(go.Scatter(x=dataset['stamp'], y=dataset['altitude'], mode='markers', name=situation))
+    for openOrOc in combined_df['openOrOccluded'].unique():
+        dataset = combined_df[combined_df['openOrOccluded'] == openOrOc]
+        fig.add_trace(go.Scatter(x=dataset['stamp'], 
+                                 y=dataset['altitude'], 
+                                 mode='markers', 
+                                 name=openOrOc))
 
     # Customize the plot
     fig.update_layout(
@@ -175,22 +192,26 @@ def plotStationaryHistogram(csv_filepaths: list):
         # Load data
         df = pd.read_csv(csv_file)
 
-        # Calculate the centroid
-        centroid_easting = df['utm_easting'].mean()
-        centroid_northing = df['utm_northing'].mean()
+        # Get normalized northing and easting columns.
+        df, _, _ = getNormalizedNorthingEasting(df)
 
-        # Calculate Euclidean distance from each point to the centroid
-        df['euclidean_distance'] = np.sqrt((df['utm_easting'] - centroid_easting)**2 + (df['utm_northing'] - centroid_northing)**2)
+        # Calculate the centroids of the normalized data
+        centroid_easting = df['easting_normalized'].mean()
+        centroid_northing = df['northing_normalized'].mean()
 
-        # Extract the file name from the file path for the plot title
+        # Calculate Euclidean distance from each of normalized points to the centroid.
+        df['euclidean_distance'] = np.sqrt((df['easting_normalized'] - centroid_easting)**2 + (df['northing_normalized'] - centroid_northing)**2)
+
+        # Extract the file name from the file path for the plot title.
         filename = os.path.splitext(os.path.basename(csv_file))[0]
 
-        # Create a histogram plot
-        fig = px.histogram(df, x='euclidean_distance', title=f'Stationary Histogram for {filename}')
+        # Create a histogram plot.
+        fig = px.histogram(df, x='euclidean_distance', 
+                           title=f'Stationary Histogram for {filename}')
 
-        # Customize the plot
+        # Customize the plot.
         fig.update_layout(
-            xaxis_title="Euclidean Distance to Centroid",
+            xaxis_title="Euclidean Distance to Centroid (meters)",
             yaxis_title="Count",
             plot_bgcolor="white"
         )
@@ -199,35 +220,39 @@ def plotStationaryHistogram(csv_filepaths: list):
         fig.write_image(f"{filename}EuclDistancteHistogram.{IMAGE_EXTENSION}")
 
 if __name__ == '__main__':
-    # 1. Convert bag file to csv.
-    convert_rosbag_to_csv(bag_filepath, csv_filepath)
+    if scenario == CHICAGO:
+        # Convert bag file to csv.
+        convert_rosbag_to_csv(bag_filepath, csv_filepath)
 
-    # 2. Plot Northing and Easting Chicago data.
+
+    # 1. Plot Northing and Easting Chicago data.
     plotNorthingEasting(csv_filepaths, 
                     plot_filepath=f'{scenario.lower()}NorthingEasting.{IMAGE_EXTENSION}', 
                     scenario=scenario, 
                     isLineOfBestFit=False)
     
+    if scenario == CHICAGO:
+        exit(0)
+    
+    
+    # For stationary, we don't need line of best fit.
+    isLineOfBestFit = True
+    if scenario == STATIONARY:
+        isLineOfBestFit = False
+
+        # 2. Plot Histogram.
+        plotStationaryHistogram(csv_filepaths)
 
 
-    # # 3. For stationary, we don't need line of best fit.
-    # isLineOfBestFit = True
-    # if scenario == STATIONARY:
-    #     isLineOfBestFit = False
+    # 3. Plot Northing Easting difference and Altittude vs Time.
+    plotNorthingEasting(csv_filepaths, 
+                        plot_filepath=f'{scenario.lower()}NorthingEasting.{IMAGE_EXTENSION}', 
+                        scenario=scenario, 
+                        isLineOfBestFit=isLineOfBestFit)
 
-    #     # Plot Histogram.
-    #     plotStationaryHistogram(csv_filepaths)
-
-
-    # # 4. Plot all.
-    # plotNorthingEasting(csv_filepaths, 
-    #                     plot_filepath=f'{scenario.lower()}NorthingEasting.{IMAGE_EXTENSION}', 
-    #                     scenario=scenario, 
-    #                     isLineOfBestFit=isLineOfBestFit)
-
-    # plotAltitudeVsTime(csv_filepaths, 
-    #                 plot_filepath=f'{scenario.lower()}AltitudeTime.{IMAGE_EXTENSION}', 
-    #                 scenario=scenario)
+    plotAltitudeVsTime(csv_filepaths, 
+                    plot_filepath=f'{scenario.lower()}AltitudeTime.{IMAGE_EXTENSION}', 
+                    scenario=scenario)
 
 
 

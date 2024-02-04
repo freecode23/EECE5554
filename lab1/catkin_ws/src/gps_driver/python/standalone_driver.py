@@ -53,6 +53,7 @@ def convertToUTM(latitudeSigned: float, longitudeSigned: float):
     '''
     Given latitude and longitude compute all the UTM values.
     return a list of: EASTING, NORTHING, ZONE_NUMBER, ZONE_LETTER
+    The EASTIN and NORTHING is distanc in meters.
     '''
     # The return has the form (EASTING, NORTHING, ZONE_NUMBER, ZONE_LETTER).
     UTMVals = utm.from_latlon(latitudeSigned, longitudeSigned)
@@ -121,8 +122,7 @@ def createOutputFilepath(filename) -> str:
 
 def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
     '''
-    $GPGGA, time, latitude, N/S, longitude, E/W, fix quality, number of satellites, HDOP, altitude, 
-    M, height of geoid above WGS84 ellipsoid, M, time since last DGPS update, DGPS reference station id, checksum
+    This function parses the gpggaStr input to Customgps ROS message and return the message object.
     '''
     # Split into components
     gpggaSplit = gpggaStr.split(',')  # Split the string by comma
