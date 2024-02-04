@@ -85,7 +85,7 @@ To run autograder, copy the autograder directory inside EECE5554/ directory then
 ```
 bash script.sh freecode23
 ```
-
+Remember to remove the cloned 'eece5554' directory from the autograder dir once the autograding is completed.
 To manually start screen session for emulator with arguments that is inside the script:
 ```
 screen -S emulator -dm bash -c "echo $pwd;python3 serial_emulator.py -f gps-data.txt; echo $pwd"
