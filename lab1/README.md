@@ -1,5 +1,6 @@
-# Setup to publish GPS data to serial port.
-
+# Introduction.
+The aim of lab 1 is to create a program that ingest GPS GPGGA data from a GPS puck, process the data to get the UTM information, and convert the data type to ROS custom message so that it can published as ROS topic. We will also be saving the ROS messages logs to a bag file so we can convert it to .csv file and perform various data analysis.
+# 1. Preliminiary setup to publish GPS data to serial port.
 ## Option A: Using GPS puck
 List all serial device and find the GPS puck device we want to listen to using:
 ```
@@ -27,7 +28,7 @@ To see the output in minicom:
 minicom lab1 -D /dev/pts/4
 ```
 
-# Capture the GPS messages, publish the messages using ROS node, record, and save to csv.
+# 2. Capture the GPS messages, publish the messages using ROS node, record, and save to csv.
 
 In `catkins_ws` directory:  
 
@@ -80,7 +81,7 @@ rosbag info openWalk/openWalk.bag.bag
 ```
 
 Then we can execute `rostopic echo gppga_topic` again we will see whats being published.
-# Autograder
+# 3. Autograder
 To run autograder, copy the autograder directory inside EECE5554/ directory then run:
 ```
 bash script.sh freecode23
@@ -113,7 +114,7 @@ header :  GPS1_Frame
 hdop: 1.0
 altitude: 0
 
-# Data capture
+# 4. Data capture
 
 1. In occluded spot near building or trees: 5 mins stationary (behind snell)
 2. Also do walking here.
