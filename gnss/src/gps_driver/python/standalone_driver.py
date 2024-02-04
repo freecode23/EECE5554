@@ -94,7 +94,7 @@ def UTCtoUTCEpoch(inputTimeStr: str):
     inputTimeNsec = int(Decimal(inputTimeSinceEpochSec - inputTimeSec) * Decimal('1e9'))
 
     # Modulo operation should give seconds since BOD
-    print("inputTimeSec mod=", inputTimeSec%86400)
+    # print("inputTimeSec mod=", inputTimeSec%86400)
 
     return [inputTimeSec, inputTimeNsec]
 
@@ -201,7 +201,7 @@ if __name__ == '__main__':
                 customGPSmsg.header.seq += 1
 
                 # 4.2 Write gpggaStr to .txt file.
-                print("\ngpggaStr", gpggaStr)
+                # print("\ngpggaStr", gpggaStr)
                 file.write(gpggaStr + '\n')
                 file.flush()
                 
