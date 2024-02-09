@@ -23,10 +23,9 @@ RTK = "RTK"
 STATIONARY_RTK = f"Stationary{RTK}"
 WALK_RTK = f"walking{RTK}"
 
-scenario = WALK
+scenario = WALK_RTK
 # Replace filename or scenario with the desired name before running the program.
 # For converting bag file to csv file.
-
 if scenario == CHICAGO or scenario == WALK_RTK:
     filename = scenario
     csv_filepath = f'{filename}/{filename}.csv'
