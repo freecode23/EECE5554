@@ -1,6 +1,6 @@
 # generated from genmsg/cmake/pkg-genmsg.cmake.em
 
-message(STATUS "gps_driver: 1 messages, 0 services")
+message(STATUS "gps_driver: 2 messages, 0 services")
 
 set(MSG_I_FLAGS "-Igps_driver:/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg;-Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg")
 
@@ -22,6 +22,11 @@ add_custom_target(_gps_driver_generate_messages_check_deps_${_filename}
   COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "gps_driver" "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg" "std_msgs/Header"
 )
 
+get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg" NAME_WE)
+add_custom_target(_gps_driver_generate_messages_check_deps_${_filename}
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "gps_driver" "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg" "std_msgs/Header"
+)
+
 #
 #  langs = gencpp;geneus;genlisp;gennodejs;genpy
 #
@@ -30,6 +35,12 @@ add_custom_target(_gps_driver_generate_messages_check_deps_${_filename}
 ### Generating Messages
 _generate_msg_cpp(gps_driver
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/gps_driver
+)
+_generate_msg_cpp(gps_driver
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/gps_driver
@@ -51,6 +62,8 @@ add_dependencies(gps_driver_generate_messages gps_driver_generate_messages_cpp)
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg" NAME_WE)
 add_dependencies(gps_driver_generate_messages_cpp _gps_driver_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg" NAME_WE)
+add_dependencies(gps_driver_generate_messages_cpp _gps_driver_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(gps_driver_gencpp)
@@ -63,6 +76,12 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS gps_driver_generate_messages_cpp)
 ### Generating Messages
 _generate_msg_eus(gps_driver
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/gps_driver
+)
+_generate_msg_eus(gps_driver
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/gps_driver
@@ -84,6 +103,8 @@ add_dependencies(gps_driver_generate_messages gps_driver_generate_messages_eus)
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg" NAME_WE)
 add_dependencies(gps_driver_generate_messages_eus _gps_driver_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg" NAME_WE)
+add_dependencies(gps_driver_generate_messages_eus _gps_driver_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(gps_driver_geneus)
@@ -96,6 +117,12 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS gps_driver_generate_messages_eus)
 ### Generating Messages
 _generate_msg_lisp(gps_driver
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/gps_driver
+)
+_generate_msg_lisp(gps_driver
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/gps_driver
@@ -117,6 +144,8 @@ add_dependencies(gps_driver_generate_messages gps_driver_generate_messages_lisp)
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg" NAME_WE)
 add_dependencies(gps_driver_generate_messages_lisp _gps_driver_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg" NAME_WE)
+add_dependencies(gps_driver_generate_messages_lisp _gps_driver_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(gps_driver_genlisp)
@@ -129,6 +158,12 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS gps_driver_generate_messages_lisp)
 ### Generating Messages
 _generate_msg_nodejs(gps_driver
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/gps_driver
+)
+_generate_msg_nodejs(gps_driver
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/gps_driver
@@ -150,6 +185,8 @@ add_dependencies(gps_driver_generate_messages gps_driver_generate_messages_nodej
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg" NAME_WE)
 add_dependencies(gps_driver_generate_messages_nodejs _gps_driver_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg" NAME_WE)
+add_dependencies(gps_driver_generate_messages_nodejs _gps_driver_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility
 add_custom_target(gps_driver_gennodejs)
@@ -162,6 +199,12 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS gps_driver_generate_messages_nodejs
 ### Generating Messages
 _generate_msg_py(gps_driver
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg"
+  "${MSG_I_FLAGS}"
+  "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
+  ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/gps_driver
+)
+_generate_msg_py(gps_driver
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg"
   "${MSG_I_FLAGS}"
   "/opt/ros/noetic/share/std_msgs/cmake/../msg/Header.msg"
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/gps_driver
@@ -182,6 +225,8 @@ add_dependencies(gps_driver_generate_messages gps_driver_generate_messages_py)
 
 # add dependencies to all check dependencies targets
 get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg" NAME_WE)
+add_dependencies(gps_driver_generate_messages_py _gps_driver_generate_messages_check_deps_${_filename})
+get_filename_component(_filename "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg" NAME_WE)
 add_dependencies(gps_driver_generate_messages_py _gps_driver_generate_messages_check_deps_${_filename})
 
 # target for backward compatibility

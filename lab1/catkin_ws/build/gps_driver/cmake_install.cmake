@@ -38,7 +38,10 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/gps_driver/msg" TYPE FILE FILES "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/gps_driver/msg" TYPE FILE FILES
+    "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg"
+    "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg"
+    )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)

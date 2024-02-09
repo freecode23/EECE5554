@@ -54,6 +54,7 @@ CMAKE_BINARY_DIR = /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/build
 include gps_driver/CMakeFiles/gps_driver_generate_messages_nodejs.dir/progress.make
 
 gps_driver/CMakeFiles/gps_driver_generate_messages_nodejs: /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customgps.js
+gps_driver/CMakeFiles/gps_driver_generate_messages_nodejs: /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customrtk.js
 
 
 /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customgps.js: /opt/ros/noetic/lib/gennodejs/gen_nodejs.py
@@ -62,8 +63,15 @@ gps_driver/CMakeFiles/gps_driver_generate_messages_nodejs: /home/sherly/Desktop/
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating Javascript code from gps_driver/Customgps.msg"
 	cd /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/build/gps_driver && ../catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/gennodejs/cmake/../../../lib/gennodejs/gen_nodejs.py /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg -Igps_driver:/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -p gps_driver -o /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg
 
+/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customrtk.js: /opt/ros/noetic/lib/gennodejs/gen_nodejs.py
+/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customrtk.js: /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg
+/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customrtk.js: /opt/ros/noetic/share/std_msgs/msg/Header.msg
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating Javascript code from gps_driver/Customrtk.msg"
+	cd /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/build/gps_driver && ../catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/gennodejs/cmake/../../../lib/gennodejs/gen_nodejs.py /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg -Igps_driver:/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -p gps_driver -o /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg
+
 gps_driver_generate_messages_nodejs: gps_driver/CMakeFiles/gps_driver_generate_messages_nodejs
 gps_driver_generate_messages_nodejs: /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customgps.js
+gps_driver_generate_messages_nodejs: /home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customrtk.js
 gps_driver_generate_messages_nodejs: gps_driver/CMakeFiles/gps_driver_generate_messages_nodejs.dir/build.make
 
 .PHONY : gps_driver_generate_messages_nodejs

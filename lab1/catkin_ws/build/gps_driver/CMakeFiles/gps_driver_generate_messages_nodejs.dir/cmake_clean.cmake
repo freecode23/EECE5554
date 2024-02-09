@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customgps.js"
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/gennodejs/ros/gps_driver/msg/Customrtk.js"
   "CMakeFiles/gps_driver_generate_messages_nodejs"
 )
 

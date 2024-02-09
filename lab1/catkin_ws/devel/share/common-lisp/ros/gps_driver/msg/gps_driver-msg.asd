@@ -7,4 +7,6 @@
   :components ((:file "_package")
     (:file "Customgps" :depends-on ("_package_Customgps"))
     (:file "_package_Customgps" :depends-on ("_package"))
+    (:file "Customrtk" :depends-on ("_package_Customrtk"))
+    (:file "_package_Customrtk" :depends-on ("_package"))
   ))

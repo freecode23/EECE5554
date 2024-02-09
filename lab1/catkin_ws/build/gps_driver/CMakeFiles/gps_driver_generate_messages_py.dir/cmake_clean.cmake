@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/lib/python3/dist-packages/gps_driver/msg/_Customgps.py"
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/lib/python3/dist-packages/gps_driver/msg/_Customrtk.py"
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/lib/python3/dist-packages/gps_driver/msg/__init__.py"
   "CMakeFiles/gps_driver_generate_messages_py"
 )

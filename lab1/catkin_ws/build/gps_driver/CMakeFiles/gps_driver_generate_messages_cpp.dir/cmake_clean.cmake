@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/include/gps_driver/Customgps.h"
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/include/gps_driver/Customrtk.h"
   "CMakeFiles/gps_driver_generate_messages_cpp"
 )
 

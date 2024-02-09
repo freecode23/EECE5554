@@ -1,6 +1,6 @@
 # generated from genmsg/cmake/pkg-genmsg.context.in
 
-messages_str = "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg"
+messages_str = "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customgps.msg;/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/src/gps_driver/msg/Customrtk.msg"
 services_str = ""
 pkg_name = "gps_driver"
 dependencies_str = "std_msgs"

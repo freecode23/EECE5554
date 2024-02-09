@@ -3,5 +3,7 @@
   (:export
    "<CUSTOMGPS>"
    "CUSTOMGPS"
+   "<CUSTOMRTK>"
+   "CUSTOMRTK"
   ))
 

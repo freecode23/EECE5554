@@ -1,6 +1,7 @@
 file(REMOVE_RECURSE
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/roseus/ros/gps_driver/manifest.l"
   "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/roseus/ros/gps_driver/msg/Customgps.l"
+  "/home/sherly/Desktop/code/EECE5554/lab1/catkin_ws/devel/share/roseus/ros/gps_driver/msg/Customrtk.l"
   "CMakeFiles/gps_driver_generate_messages_eus"
 )
 
