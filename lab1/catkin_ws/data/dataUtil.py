@@ -33,8 +33,8 @@ if scenario == CHICAGO or scenario == WALK_RTK:
     csv_filepaths = [csv_filepath]
     bag_filepath = f'{filename}/{filename}.bag'
 
-# Get both open and occluded situation for plotting and compute error
-if scenario != CHICAGO and scenario != WALK_RTK:
+# Get both open and occluded situation.
+else:
     # Replace scenario for plotting.
     filename = f'open{scenario}'
     filename2 = f'occl{scenario}'
@@ -160,7 +160,7 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
         if RTK not in scenario:
             scenario = scenario.capitalize()
 
-        # Get the base file name.
+        # Get the base file name without the scenario name.
         openOrOc = os.path.splitext(os.path.basename(csv_file))[0].replace(scenario, "")
         df['openOrOc'] = openOrOc
 
@@ -181,6 +181,7 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
             mode='markers', name=openOrOc))
         
         # Calculate error metrics.
+        drms2_value = 0
         if isLineOfBestFit:
             # Compute and overlay line of best fit.
             m, b = np.polyfit(df['easting_diff'], df['northing_diff'], 1)
@@ -198,13 +199,12 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
 
             # Error for walking: Calculate RMSE of these perpendicular distances
             drms2_value = calculate_2DRMS_from_perpendicular_distances(perpendicular_distances)
-            print(f"The 2DRMS value for {scenario} {openOrOc} is: {drms2_value}")
         else:
             # Error for stationary: Calculate 2DRMS:
             drms2_value = calculate_2DRMS(df)
-            print(f"The 2DRMS value for {scenario} {openOrOc} is: {drms2_value}")
+    
+        print(f"The 2DRMS value for {scenario} {openOrOc} is: {drms2_value}")
         
-
     # Customize the plot
     fig.update_layout(
         title=f"{scenario} Northing vs Easting (Differences from Centroid)",
