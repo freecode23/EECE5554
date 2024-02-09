@@ -11,14 +11,19 @@ import plotly.express as px
 IMAGE_EXTENSION = "png"
 
 # Scenario selections:
+# Chicago test scenario
+CHICAGO = "chicago"
+
+# Regular GPS scenario
 STATIONARY = "Stationary"
 WALK = "Walk"
-CHICAGO = "chicago"
+
+# RTK scenario
 RTK = "RTK"
 STATIONARY_RTK = f"Stationary{RTK}"
 WALK_RTK = f"walking{RTK}"
 
-scenario = STATIONARY_RTK
+scenario = WALK
 # Replace filename or scenario with the desired name before running the program.
 # For converting bag file to csv file.
 
@@ -28,7 +33,7 @@ if scenario == CHICAGO or scenario == WALK_RTK:
     csv_filepaths = [csv_filepath]
     bag_filepath = f'{filename}/{filename}.bag'
 
-# Get both open and occluded  situation.
+# Get both open and occluded situation for plotting and compute error
 if scenario != CHICAGO and scenario != WALK_RTK:
     # Replace scenario for plotting.
     filename = f'open{scenario}'
@@ -89,6 +94,46 @@ def getNormalizedNorthingEasting(df: pd.DataFrame):
 
     return df, first_point_easting, first_point_northing
 
+# Function to calculate distance from a point to a line
+# This is to compute the RMSE for walking scenario.
+def point_to_line_dist(point, slope, intercept):
+    px, py = point
+
+    # Calculate distance using the formula for perpendicular distance from a point to a line:
+    # |Ax + By + C| / sqrt(A^2 + B^2) where line is Ax + By + C = 0
+    # For y = mx + b, A = m, B = -1, and C = b
+    dist = abs(slope * px - py + intercept) / (np.sqrt(slope**2 + 1))
+    return dist
+
+
+def calculate_2DRMS_from_perpendicular_distances(perpendicular_distances):
+    # Calculate the square of the distances
+    distances_sq = perpendicular_distances**2
+    
+    # Calculate the mean of the squared distances
+    mean_distances_sq = np.mean(distances_sq)
+    
+    # Calculate the DRMS (Distance Root Mean Square)
+    drms = np.sqrt(mean_distances_sq)
+    
+    # 2DRMS is two times the DRMS
+    drms_2 = drms * 2
+    return drms_2
+
+# Function to calculate DRMS
+def calculate_2DRMS(df: pd.DataFrame):
+    # Square of differences
+    df['easting_diff_sq'] = df['easting_diff']**2
+    df['northing_diff_sq'] = df['northing_diff']**2
+    
+    # Mean of squared differences
+    mean_easting_diff_sq = df['easting_diff_sq'].mean()
+    mean_northing_diff_sq = df['northing_diff_sq'].mean()
+    
+    # DRMS is the square root of the mean of the sum of squared differences
+    drms = np.sqrt(mean_easting_diff_sq + mean_northing_diff_sq)
+    return drms * 2
+
 def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, isLineOfBestFit: bool):
     # Initialize figure
     fig = make_subplots()
@@ -98,7 +143,7 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
 
     # Loop over each CSV file path
     for i, csv_file in enumerate(csv_filepaths):
-        # Load data
+        # 1. Load data
         df = pd.read_csv(csv_file)
 
         # Get normalized northing and easting columns.
@@ -112,13 +157,16 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
         df['easting_diff'] = df['easting_normalized'] - centroid_easting
         df['northing_diff'] = df['northing_normalized'] - centroid_northing
 
+        if RTK not in scenario:
+            scenario = scenario.capitalize()
 
-        # Extract the file name, zone, and letter
-        openOrOc = os.path.splitext(os.path.basename(csv_file))[0].replace(scenario.capitalize(), "")
+        # Get the base file name.
+        openOrOc = os.path.splitext(os.path.basename(csv_file))[0].replace(scenario, "")
         df['openOrOc'] = openOrOc
+
+        # Create textbox content.
         zone = df['zone'][0]
         letter = df['letter'][0]
-        # Append centroid info to the text box content
         textbox_content += f"\
         {openOrOc}<br>\
         Zone:{zone}<br>\
@@ -127,27 +175,41 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
         East: {(first_point_easting/1000.0):.2f} km<br>\
         North:{(first_point_northing/1000.0):.2f} km<br>"
 
-        # Add data to plot
-        # Plot scatter points
+        # Plot scatter points.
         fig.add_trace(go.Scatter(
-            x=df['northing_diff'], y=df['easting_diff'], 
+            x=df['easting_diff'], y=df['northing_diff'], 
             mode='markers', name=openOrOc))
         
+        # Calculate error metrics.
         if isLineOfBestFit:
-            # Compute and plot line of best fit
-            m, b = np.polyfit(df['northing_diff'], df['easting_diff'], 1)
+            # Compute and overlay line of best fit.
+            m, b = np.polyfit(df['easting_diff'], df['northing_diff'], 1)
+
+            # Plot.
             fig.add_trace(go.Scatter(
-                x=df['northing_diff'], 
-                y=m*df['northing_diff'] + b, 
+                x=df['easting_diff'], 
+                y=m*df['easting_diff'] + b, 
                 mode='lines', 
                 name=f'{openOrOc} Best Fit'))
+            
+            # Calculate perpendicular distances from each data point to the line of best fit.
+            perpendicular_distances = df.apply(
+                lambda row: point_to_line_dist((row['easting_diff'], row['northing_diff']), m, b), axis=1)
+
+            # Error for walking: Calculate RMSE of these perpendicular distances
+            drms2_value = calculate_2DRMS_from_perpendicular_distances(perpendicular_distances)
+            print(f"The 2DRMS value for {scenario} {openOrOc} is: {drms2_value}")
+        else:
+            # Error for stationary: Calculate 2DRMS:
+            drms2_value = calculate_2DRMS(df)
+            print(f"The 2DRMS value for {scenario} {openOrOc} is: {drms2_value}")
         
 
     # Customize the plot
     fig.update_layout(
         title=f"{scenario} Northing vs Easting (Differences from Centroid)",
-        xaxis_title="Northing Difference from Centroid (m)",
-        yaxis_title="Easting Difference from Centroid (m)",
+        xaxis_title="Easting Difference from Centroid (m)",
+        yaxis_title="Northing Difference from Centroid (m)",
         plot_bgcolor="white",
         annotations=[
             dict(
