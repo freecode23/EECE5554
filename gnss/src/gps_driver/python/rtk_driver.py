@@ -9,9 +9,9 @@ from decimal import Decimal
 
 
 # from <package name>.<folder name> import filename
-from gps_driver.msg import Customgps
+from gps_driver.msg import Customrtk
 
-class GPGGA:
+class gngga:
     TIME = 1
     LATITUDE = 2
     LATITUDE_DIR = 3
@@ -22,8 +22,9 @@ class GPGGA:
     HDOP = 8
     ALTITUDE = 9
 
-def isGPGGAinString(inputString):
-    if '$GPGGA' in inputString:
+    
+def isGNGGAinString(inputString):
+    if '$GNGGA' in inputString:
         return True
     else:
         return False
@@ -94,7 +95,7 @@ def UTCtoUTCEpoch(inputTimeStr: str):
     inputTimeNsec = int(Decimal(inputTimeSinceEpochSec - inputTimeSec) * Decimal('1e9'))
 
     # Modulo operation should give seconds since BOD
-    # print("inputTimeSec mod=", inputTimeSec%86400)
+    print("inputTimeSec mod=", inputTimeSec%86400)
 
     return [inputTimeSec, inputTimeNsec]
 
@@ -120,24 +121,25 @@ def createOutputFilepath(filename) -> str:
     # final filepath will be something like `catkin_ws/data/filenameA.txt`
     return txtFilepath
 
-def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
+def parseGNGGA(gnggaStr: str, customRTKmsg: Customrtk) -> Customrtk:
     '''
-    This function parses the gpggaStr input to Customgps ROS message and return the message object.
+    This function parses the gnggaStr input to Customrtk ROS message and return the message object.
     '''
     # Split into components
-    gpggaSplit = gpggaStr.split(',')  # Split the string by comma
-    fixQuality = gpggaSplit[GPGGA.FIX_QUALITY]
+    gnggaSplit = gnggaStr.split(',')  # Split the string by comma
+    fixQuality = gnggaSplit[gngga.FIX_QUALITY]
 
-    if fixQuality == "0":
+    if fixQuality == "0" or fixQuality == "":
         print("GPS receiver cannot provide a reliable location fix at that moment.")
         return None
-    UTCstr = gpggaSplit[GPGGA.TIME] #float
-    latitude = gpggaSplit[GPGGA.LATITUDE] # use string first then convert to float later
-    latDir = gpggaSplit[GPGGA.LATITUDE_DIR] #string
-    longitude = gpggaSplit[GPGGA.LONGITUDE] # use string first.
-    longDir = gpggaSplit[GPGGA.LONGITUDE_DIR] #string
-    hdop = float(gpggaSplit[GPGGA.HDOP]) #float
-    altitude = float(gpggaSplit[GPGGA.ALTITUDE])
+    UTCstr = gnggaSplit[gngga.TIME] #float
+    latitude = gnggaSplit[gngga.LATITUDE] # use string first then convert to float later
+    latDir = gnggaSplit[gngga.LATITUDE_DIR] #string
+    longitude = gnggaSplit[gngga.LONGITUDE] # use string first.
+    longDir = gnggaSplit[gngga.LONGITUDE_DIR] #string
+    hdop = float(gnggaSplit[gngga.HDOP]) #float
+    altitude = float(gnggaSplit[gngga.ALTITUDE])
+
 
     # Convert to Signed decimal degree
     latDegDec = degMinstoDegDec(False, latitude)
@@ -151,69 +153,70 @@ def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
     currentTime = UTCtoUTCEpoch(UTCstr)
 
     # Assign all fields to the message object
-    customGPSmsg.latitude = latitudeSigned
-    customGPSmsg.longitude = longitudeSigned
-    customGPSmsg.altitude = altitude
-    customGPSmsg.utm_easting = utmVals[0]
-    customGPSmsg.utm_northing = utmVals[1]
-    customGPSmsg.zone = utmVals[2]
-    customGPSmsg.letter = utmVals[3]
-    customGPSmsg.hdop = hdop
-    customGPSmsg.gpgga_read = gpggaStr
-    customGPSmsg.header.stamp.secs = currentTime[0]
-    customGPSmsg.header.stamp.nsecs = currentTime[1]
-    return customGPSmsg
+    customRTKmsg.latitude = latitudeSigned
+    customRTKmsg.longitude = longitudeSigned
+    customRTKmsg.altitude = altitude
+    customRTKmsg.utm_easting = utmVals[0]
+    customRTKmsg.utm_northing = utmVals[1]
+    customRTKmsg.zone = utmVals[2]
+    customRTKmsg.letter = utmVals[3]
+    customRTKmsg.hdop = hdop
+    customRTKmsg.fix_quality = int(fixQuality)
+    customRTKmsg.gngga_read = gnggaStr
+    customRTKmsg.header.stamp.secs = currentTime[0]
+    customRTKmsg.header.stamp.nsecs = currentTime[1]
+    return customRTKmsg
 
 if __name__ == '__main__':
     # Uncomment this to parse a single line of string:
-    # gpggaStr = '$GPGGA,023458.230,3401.21189,N,11824.67797,W,1,12,1.0,0.0,M,0.0,M,,*70'
-    # customGPSmsg = Customgps()
-    # result = parseGPGGA(gpggaStr, customGPSmsg)
+    # gnggaStr = '$gngga,023458.230,3401.21189,N,11824.67797,W,1,12,1.0,0.0,M,0.0,M,,*70'
+    # customRTKmsg = Customrtk()
+    # result = parsegngga(gnggaStr, customRTKmsg)
     # print(result)
     
     # 0. init ROS node and publisher.
     rospy.init_node("gps_driver_node")
-    gpsPub = rospy.Publisher("/gps", Customgps, queue_size=5)
+    gpsPub = rospy.Publisher("/gps", Customrtk, queue_size=5)
     r = rospy.Rate(100)
 
     # 1. Set to the emulator or GPS puck port
-    serialPortAddr = serial_port = rospy.get_param('~port', '/dev/ttyUSB0')
+    serialPortAddr = serial_port = rospy.get_param('~port', '/dev/pts/3')
     serialPort = serial.Serial(serialPortAddr, baudrate=4800, timeout=5)
 
-    # 2. Prepare the directory to save the real result of GPGGA string from GPS puck.
+    # 2. Prepare the directory to save the real result of gngga string from GPS puck.
     txtFilename = rospy.get_param('~filename', 'fileA')
     txtFilepath = createOutputFilepath(txtFilename)
 
     # 3. Initialize the ROS message object.
-    customGPSmsg = Customgps()
-    customGPSmsg.header.frame_id = "GPS1_Frame"
-    customGPSmsg.header.seq = 0
+    customRTKmsg = Customrtk()
+    customRTKmsg.header.frame_id = "GPS1_Frame"
+    customRTKmsg.header.seq = 0
 
     # 4. Publish at 10Mhz.
     try:
         with open(txtFilepath, 'a') as file:  # Open file in append mode
             while not rospy.is_shutdown():
                 # 4.1 Read the message from port
-                gpggaStr = serialPort.readline().decode('ascii').strip()
-                if not isGPGGAinString(gpggaStr):
+                gnggaStr = serialPort.readline().decode('ascii').strip()
+                if not isGNGGAinString(gnggaStr):
                     continue
 
-                customGPSmsg.header.seq += 1
+                customRTKmsg.header.seq += 1
 
-                # 4.2 Write gpggaStr to .txt file.
-                # print("\ngpggaStr", gpggaStr)
-                file.write(gpggaStr + '\n')
+                # 4.2 Write gnggaStr to .txt file.
+                print("\ngnggaStr", gnggaStr)
+                file.write(gnggaStr + '\n')
                 file.flush()
                 
                 
                 # 4.3 Parse the string as GPS msg object and publish.
-                result = parseGPGGA(gpggaStr, customGPSmsg)
+                result = parseGNGGA(gnggaStr, customRTKmsg)
                 if not result:
                     continue
 
                 # 4.4 Publish
-                customGPSmsg = result
-                gpsPub.publish(customGPSmsg)
+                customRTKmsg = result
+                gpsPub.publish(customRTKmsg)
 
                 r.sleep()
 
