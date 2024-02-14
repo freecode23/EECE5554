@@ -27,7 +27,7 @@ WALK_RTK = f"walking{RTK}"
 
 # Replace with True if we want to first convert the bag file to csv.
 CONVERT_ROSBAG_TO_CSV = False
-scenario = WALK
+scenario = WALK_RTK
 
 # Get the bag and csv filepath.
 if scenario == CHICAGO or scenario == WALK_RTK:
@@ -191,28 +191,36 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
 
         # Plot scatter points.
         fig.add_trace(go.Scatter(
-            x=df['easting_diff'], y=df['northing_diff'], 
+            x=df['easting_normalized'], y=df['northing_normalized'], 
             mode='markers', name=openOrOc))
         
         # Calculate error metrics.
         drms2_value = 0
+        title=f"{scenario} Northing vs Easting (Differences from Centroid)"
+        xaxis_title="Easting Difference from Centroid (m)"
+        yaxis_title="Northing Difference from Centroid (m)"
         if isLineOfBestFit:
             # Compute and overlay line of best fit.
-            m, b = np.polyfit(df['easting_diff'], df['northing_diff'], 1)
+            m, b = np.polyfit(df['easting_normalized'], df['northing_normalized'], 1)
 
             # Plot.
             fig.add_trace(go.Scatter(
-                x=df['easting_diff'], 
-                y=m*df['easting_diff'] + b, 
+                x=df['easting_normalized'], 
+                y=m*df['easting_normalized'] + b, 
                 mode='lines', 
                 name=f'{openOrOc} Best Fit'))
             
             # Calculate perpendicular distances from each data point to the line of best fit.
             perpendicular_distances = df.apply(
-                lambda row: point_to_line_dist((row['easting_diff'], row['northing_diff']), m, b), axis=1)
+                lambda row: point_to_line_dist((row['easting_normalized'], row['northing_normalized']), m, b), axis=1)
 
             # Error for walking: Calculate RMSE of these perpendicular distances
             drms2_value = calculate_2DRMS_from_perpendicular_distances(perpendicular_distances)
+            title=f"{scenario} Northing vs Easting"
+            xaxis_title="Easting (m)"
+            yaxis_title="Northing (m)"
+
+
         else:
             # Error for stationary: Calculate 2DRMS:
             drms2_value = calculate_2DRMS(df)
@@ -221,9 +229,9 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
         
     # Customize the plot
     fig.update_layout(
-        title=f"{scenario} Northing vs Easting (Differences from Centroid)",
-        xaxis_title="Easting Difference from Centroid (m)",
-        yaxis_title="Northing Difference from Centroid (m)",
+        title=title,
+        xaxis_title=xaxis_title,
+        yaxis_title=yaxis_title,
         plot_bgcolor="white",
         annotations=[
             dict(
