@@ -27,7 +27,7 @@ WALK_RTK = f"walking{RTK}"
 
 # Replace with True if we want to first convert the bag file to csv.
 CONVERT_ROSBAG_TO_CSV = False
-scenario = WALK_RTK
+scenario = STATIONARY_RTK
 
 # Get the bag and csv filepath.
 if scenario == CHICAGO or scenario == WALK_RTK:
@@ -119,7 +119,7 @@ def point_to_line_dist(point, slope, intercept):
     # mx -y + b = 0
     # Ax + (-B) y + C =0
     # A = m, B = -1, and C = intercept (b)
-    dist = abs(slope * px - py + intercept) / (np.sqrt(slope**2 + 1))
+    dist = abs(slope * -px + py - intercept) / (np.sqrt(slope**2 + 1))
     return dist
 
 
@@ -205,7 +205,7 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
         if isLineOfBestFit:
             # Compute and overlay line of best fit.
             m, b = np.polyfit(df['easting_normalized'], df['northing_normalized'], 1)
-            print(np.polyfit(df['easting_normalized'], df['northing_normalized'], 1))
+        
             # Plot.
             fig.add_trace(go.Scatter(
                 x=df['easting_normalized'], 
