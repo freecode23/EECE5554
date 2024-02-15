@@ -115,7 +115,10 @@ def point_to_line_dist(point, slope, intercept):
 
     # Calculate distance using the formula for perpendicular distance from a point to a line:
     # |Ax + By + C| / sqrt(A^2 + B^2) where line is Ax + By + C = 0
-    # For y = mx + b, A = m, B = -1, and C = b
+    # For y = mx + b
+    # mx -y + b = 0
+    # Ax + (-B) y + C =0
+    # A = m, B = -1, and C = intercept (b)
     dist = abs(slope * px - py + intercept) / (np.sqrt(slope**2 + 1))
     return dist
 
@@ -202,7 +205,7 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
         if isLineOfBestFit:
             # Compute and overlay line of best fit.
             m, b = np.polyfit(df['easting_normalized'], df['northing_normalized'], 1)
-
+            print(np.polyfit(df['easting_normalized'], df['northing_normalized'], 1))
             # Plot.
             fig.add_trace(go.Scatter(
                 x=df['easting_normalized'], 
