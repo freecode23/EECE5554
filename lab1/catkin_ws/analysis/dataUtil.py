@@ -9,6 +9,8 @@ import plotly.express as px
 
 
 IMAGE_EXTENSION = "png"
+DATA_DIR = "../data"
+PLOT_DIR = f"{DATA_DIR}/plots"
 
 # Scenario selections:
 # Chicago test scenario
@@ -23,66 +25,79 @@ RTK = "RTK"
 STATIONARY_RTK = f"Stationary{RTK}"
 WALK_RTK = f"walking{RTK}"
 
-scenario = WALK_RTK
-# Replace filename or scenario with the desired name before running the program.
-# For converting bag file to csv file.
+# Replace with True if we want to first convert the bag file to csv.
+CONVERT_ROSBAG_TO_CSV = False
+scenario = STATIONARY_RTK
+
+# Get the bag and csv filepath.
 if scenario == CHICAGO or scenario == WALK_RTK:
     filename = scenario
-    csv_filepath = f'{filename}/{filename}.csv'
-    csv_filepaths = [csv_filepath]
-    bag_filepath = f'{filename}/{filename}.bag'
+    bag_filepath = f'{DATA_DIR}/{filename}/{filename}.bag'
+    bag_filepaths = [bag_filepath]
 
-# Get both open and occluded situation.
-else:
+    csv_filepath = f'{DATA_DIR}/{filename}/{filename}.csv'
+    csv_filepaths = [csv_filepath]
+ 
+else: 
     # Replace scenario for plotting.
     filename = f'open{scenario}'
     filename2 = f'occl{scenario}'
+
+    # Get bag filepaths for open and occl.
+    bag_filepath = f'{DATA_DIR}/{filename}/{filename}.bag'
+    bag_filepath2 = f'{DATA_DIR}/{filename2}/{filename2}.bag'
+    bag_filepaths = [bag_filepath, bag_filepath2]
  
-    # Get file paths for open and occluded. 
-    csv_filepath = f'{filename}/{filename}.csv'
-    csv_filepath2 = f'{filename2}/{filename2}.csv'
+    # Get csv filepaths for open and occluded. 
+    csv_filepath = f'{DATA_DIR}/{filename}/{filename}.csv'
+    csv_filepath2 = f'{DATA_DIR}/{filename2}/{filename2}.csv'
     csv_filepaths = [csv_filepath, csv_filepath2]
 
 
 # Function to convert a ROS bag to CSV.
-def convert_rosbag_to_csv(bag_filepath, csv_filepath):
-    read_format = 'gpgga_read'
-    if RTK in bag_filepath:
-        read_format = 'gngga_read'
+def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
 
-    with rosbag.Bag(bag_filepath, 'r') as bag, open(csv_filepath, 'w', newline='') as csvfile:
-        fieldnames = ['seq', 'stamp', 'frame_id', 'latitude', 
-                      'longitude', 'altitude', 'utm_easting', 
-                      'utm_northing', 'zone', 'letter', 
-                      'hdop', read_format, 'fix_quality']
-        
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
+    for i in range(len(bag_filepaths)):
+        bag_filepath = bag_filepaths[i]
+        csv_filepath = csv_filepaths[i]
 
-        for topic, msg, t in bag.read_messages():
-            row_dict = {
-                    'seq': msg.header.seq,
-                    'stamp': msg.header.stamp.to_sec(),
-                    'frame_id': msg.header.frame_id,
-                    'latitude': msg.latitude,
-                    'longitude': msg.longitude,
-                    'altitude': msg.altitude,
-                    'utm_easting': msg.utm_easting,
-                    'utm_northing': msg.utm_northing,
-                    'zone': msg.zone,
-                    'letter': msg.letter,
-                    'hdop': msg.hdop,
-                }
-            if RTK in bag_filepath:
-                row_dict[read_format] = msg.gngga_read
-                row_dict['fix_quality'] = msg.fix_quality
-            else:
-                row_dict[read_format] = msg.gpgga_read
+        read_format = 'gpgga_read'
+        if RTK in bag_filepath:
+            read_format = 'gngga_read'
+
+        with rosbag.Bag(bag_filepath, 'r') as bag, open(csv_filepath, 'w', newline='') as csvfile:
+            fieldnames = ['seq', 'stamp', 'frame_id', 'latitude', 
+                        'longitude', 'altitude', 'utm_easting', 
+                        'utm_northing', 'zone', 'letter', 
+                        'hdop', read_format, 'fix_quality']
+            
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for topic, msg, t in bag.read_messages():
+                row_dict = {
+                        'seq': msg.header.seq,
+                        'stamp': msg.header.stamp.to_sec(),
+                        'frame_id': msg.header.frame_id,
+                        'latitude': msg.latitude,
+                        'longitude': msg.longitude,
+                        'altitude': msg.altitude,
+                        'utm_easting': msg.utm_easting,
+                        'utm_northing': msg.utm_northing,
+                        'zone': msg.zone,
+                        'letter': msg.letter,
+                        'hdop': msg.hdop,
+                    }
+                if RTK in bag_filepath:
+                    row_dict[read_format] = msg.gngga_read
+                    row_dict['fix_quality'] = msg.fix_quality
+                else:
+                    row_dict[read_format] = msg.gpgga_read
 
 
-            # Change the topic name to match your specific topic
-            if topic == '/gps':
-                writer.writerow(row_dict)
+                # Change the topic name to match your specific topic
+                if topic == '/gps':
+                    writer.writerow(row_dict)
 
 def getNormalizedNorthingEasting(df: pd.DataFrame):
     # Subtract the first data point from each data point in the dataset
@@ -176,28 +191,36 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
 
         # Plot scatter points.
         fig.add_trace(go.Scatter(
-            x=df['easting_diff'], y=df['northing_diff'], 
+            x=df['easting_normalized'], y=df['northing_normalized'], 
             mode='markers', name=openOrOc))
         
         # Calculate error metrics.
         drms2_value = 0
+        title=f"{scenario} Northing vs Easting (Differences from Centroid)"
+        xaxis_title="Easting Difference from Centroid (m)"
+        yaxis_title="Northing Difference from Centroid (m)"
         if isLineOfBestFit:
             # Compute and overlay line of best fit.
-            m, b = np.polyfit(df['easting_diff'], df['northing_diff'], 1)
+            m, b = np.polyfit(df['easting_normalized'], df['northing_normalized'], 1)
 
             # Plot.
             fig.add_trace(go.Scatter(
-                x=df['easting_diff'], 
-                y=m*df['easting_diff'] + b, 
+                x=df['easting_normalized'], 
+                y=m*df['easting_normalized'] + b, 
                 mode='lines', 
                 name=f'{openOrOc} Best Fit'))
             
             # Calculate perpendicular distances from each data point to the line of best fit.
             perpendicular_distances = df.apply(
-                lambda row: point_to_line_dist((row['easting_diff'], row['northing_diff']), m, b), axis=1)
+                lambda row: point_to_line_dist((row['easting_normalized'], row['northing_normalized']), m, b), axis=1)
 
             # Error for walking: Calculate RMSE of these perpendicular distances
             drms2_value = calculate_2DRMS_from_perpendicular_distances(perpendicular_distances)
+            title=f"{scenario} Northing vs Easting"
+            xaxis_title="Easting (m)"
+            yaxis_title="Northing (m)"
+
+
         else:
             # Error for stationary: Calculate 2DRMS:
             drms2_value = calculate_2DRMS(df)
@@ -206,9 +229,9 @@ def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, 
         
     # Customize the plot
     fig.update_layout(
-        title=f"{scenario} Northing vs Easting (Differences from Centroid)",
-        xaxis_title="Easting Difference from Centroid (m)",
-        yaxis_title="Northing Difference from Centroid (m)",
+        title=title,
+        xaxis_title=xaxis_title,
+        yaxis_title=yaxis_title,
         plot_bgcolor="white",
         annotations=[
             dict(
@@ -266,7 +289,7 @@ def plotAltitudeVsTime(csv_filepaths: list, plot_filepath: str, scenario: str):
     fig.write_image(plot_filepath)
 
 
-def plotStationaryHistogram(csv_filepaths: list):
+def plotStationaryHistogram(csv_filepaths: list, plot_filepath: str):
 
     for i, csv_file in enumerate(csv_filepaths):
         # Load data
@@ -297,41 +320,48 @@ def plotStationaryHistogram(csv_filepaths: list):
         )
 
         # Save the plot as a PNG file
-        fig.write_image(f"{filename}EuclDistanceHistogram.{IMAGE_EXTENSION}")
+        fig.write_image(plot_filepath)
 
 if __name__ == '__main__':
+    if not os.path.exists(PLOT_DIR):
+        os.makedirs(PLOT_DIR)
+    # Convert bag file to csv.
+    if CONVERT_ROSBAG_TO_CSV:
+        convert_rosbag_to_csv(bag_filepaths, csv_filepaths)
+        exit(0)
+
+    # Plot
     if scenario == CHICAGO:
-        # Convert bag file to csv.
-        convert_rosbag_to_csv(bag_filepath, csv_filepath)
-
-
         # Plot Northing and Easting data.
         plotNorthingEasting(csv_filepaths, 
-                        plot_filepath=f'{scenario.lower()}NorthingEasting.{IMAGE_EXTENSION}', 
+                        plot_filepath=f'{PLOT_DIR}/{scenario.lower()}NorthingEasting.{IMAGE_EXTENSION}', 
                         scenario=scenario, 
                         isLineOfBestFit=False)
     
         exit(0)
-    
+
     # Plot
     # For stationary, we don't need line of best fit.
+    print("FILEPATHS=", csv_filepaths)
+
     isLineOfBestFit = True
     if STATIONARY in scenario:
         isLineOfBestFit = False
 
         # 1. Plot Histogram.
-        plotStationaryHistogram(csv_filepaths)
+        plotStationaryHistogram(csv_filepaths,
+                                plot_filepath=f'{PLOT_DIR}/{scenario.lower()}EuclDistanceHistogram.{IMAGE_EXTENSION}', 
+                                )
 
-    print("FILEPATHS=", csv_filepaths)
     # 2. Plot Northing Easting difference.
     plotNorthingEasting(csv_filepaths, 
-                        plot_filepath=f'{scenario.lower()}NorthingEasting.{IMAGE_EXTENSION}', 
+                        plot_filepath=f'{PLOT_DIR}/{scenario.lower()}NorthingEasting.{IMAGE_EXTENSION}', 
                         scenario=scenario, 
                         isLineOfBestFit=isLineOfBestFit)
 
     # 3. Plot Altitude vs time.
     plotAltitudeVsTime(csv_filepaths, 
-                    plot_filepath=f'{scenario.lower()}AltitudeTime.{IMAGE_EXTENSION}', 
+                    plot_filepath=f'{PLOT_DIR}/{scenario.lower()}AltitudeTime.{IMAGE_EXTENSION}', 
                     scenario=scenario)
 
 

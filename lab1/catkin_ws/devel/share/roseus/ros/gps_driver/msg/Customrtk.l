@@ -106,7 +106,7 @@
     8
     ;; string _gngga_read
     4 (length _gngga_read)
-    ;; uint8 _fix_quality
+    ;; int8 _fix_quality
     1
     ))
   (:serialize
@@ -133,7 +133,7 @@
        (sys::poke _hdop (send s :buffer) (send s :count) :double) (incf (stream-count s) 8)
      ;; string _gngga_read
        (write-long (length _gngga_read) s) (princ _gngga_read s)
-     ;; uint8 _fix_quality
+     ;; int8 _fix_quality
        (write-byte _fix_quality s)
      ;;
      (if (null strm) (get-output-stream-string s))))
@@ -159,13 +159,14 @@
      (setq _hdop (sys::peek buf ptr- :double)) (incf ptr- 8)
    ;; string _gngga_read
      (let (n) (setq n (sys::peek buf ptr- :integer)) (incf ptr- 4) (setq _gngga_read (subseq buf ptr- (+ ptr- n))) (incf ptr- n))
-   ;; uint8 _fix_quality
+   ;; int8 _fix_quality
      (setq _fix_quality (sys::peek buf ptr- :char)) (incf ptr- 1)
+     (if (> _fix_quality 127) (setq _fix_quality (- _fix_quality 256)))
    ;;
    self)
   )
 
-(setf (get gps_driver::Customrtk :md5sum-) "e4935881a36ec47772473f094b6bd903")
+(setf (get gps_driver::Customrtk :md5sum-) "38ea21115087fd4b55261127df6daa3a")
 (setf (get gps_driver::Customrtk :datatype-) "gps_driver/Customrtk")
 (setf (get gps_driver::Customrtk :definition-)
       "std_msgs/Header header
@@ -178,7 +179,7 @@ uint8 zone
 string letter
 float64 hdop
 string gngga_read
-uint8 fix_quality
+int8 fix_quality
 
 ================================================================================
 MSG: std_msgs/Header
@@ -200,6 +201,6 @@ string frame_id
 
 
 
-(provide :gps_driver/Customrtk "e4935881a36ec47772473f094b6bd903")
+(provide :gps_driver/Customrtk "38ea21115087fd4b55261127df6daa3a")
 
 

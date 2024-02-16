@@ -124,7 +124,7 @@ class Customrtk {
     // Serialize message field [gngga_read]
     bufferOffset = _serializer.string(obj.gngga_read, buffer, bufferOffset);
     // Serialize message field [fix_quality]
-    bufferOffset = _serializer.uint8(obj.fix_quality, buffer, bufferOffset);
+    bufferOffset = _serializer.int8(obj.fix_quality, buffer, bufferOffset);
     return bufferOffset;
   }
 
@@ -153,7 +153,7 @@ class Customrtk {
     // Deserialize message field [gngga_read]
     data.gngga_read = _deserializer.string(buffer, bufferOffset);
     // Deserialize message field [fix_quality]
-    data.fix_quality = _deserializer.uint8(buffer, bufferOffset);
+    data.fix_quality = _deserializer.int8(buffer, bufferOffset);
     return data;
   }
 
@@ -172,7 +172,7 @@ class Customrtk {
 
   static md5sum() {
     //Returns md5sum for a message object
-    return 'e4935881a36ec47772473f094b6bd903';
+    return '38ea21115087fd4b55261127df6daa3a';
   }
 
   static messageDefinition() {
@@ -188,7 +188,7 @@ class Customrtk {
     string letter
     float64 hdop
     string gngga_read
-    uint8 fix_quality
+    int8 fix_quality
     
     ================================================================================
     MSG: std_msgs/Header

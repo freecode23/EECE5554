@@ -15,7 +15,7 @@ sudo chmod 666 /dev/ttyS0
 ## Option B: Using GPS data emitter emulator
 To run the emulator program that will write GPS data to serial port, open a new terminal and run the GPS emulator from the `sensor_emulator` directory:
 ```
-python3 serial_emulator.py -f occludedRTK.txt
+python3 serial_emulator.py --file openRTK.txt --loop "yes" --rate 100
 ```
 
 It should show the port address as so:
@@ -37,6 +37,7 @@ Step 1: Run ROS master and build the workspace.
 cd ../catkin_ws/
 roscore
 catkin_make
+source devel/setup.bash
 ```
 
 Step 2: In another terminal, run the ROS node that capture the data and publishes for the '/gps' topic:

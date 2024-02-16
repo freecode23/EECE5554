@@ -9,7 +9,7 @@ import struct
 import std_msgs.msg
 
 class Customrtk(genpy.Message):
-  _md5sum = "e4935881a36ec47772473f094b6bd903"
+  _md5sum = "38ea21115087fd4b55261127df6daa3a"
   _type = "gps_driver/Customrtk"
   _has_header = True  # flag to mark the presence of a Header object
   _full_text = """std_msgs/Header header
@@ -22,7 +22,7 @@ uint8 zone
 string letter
 float64 hdop
 string gngga_read
-uint8 fix_quality
+int8 fix_quality
 
 ================================================================================
 MSG: std_msgs/Header
@@ -41,7 +41,7 @@ time stamp
 string frame_id
 """
   __slots__ = ['header','latitude','longitude','altitude','utm_easting','utm_northing','zone','letter','hdop','gngga_read','fix_quality']
-  _slot_types = ['std_msgs/Header','float64','float64','float64','float64','float64','uint8','string','float64','string','uint8']
+  _slot_types = ['std_msgs/Header','float64','float64','float64','float64','float64','uint8','string','float64','string','int8']
 
   def __init__(self, *args, **kwds):
     """
@@ -132,7 +132,7 @@ string frame_id
         length = len(_x)
       buff.write(struct.Struct('<I%ss'%length).pack(length, _x))
       _x = self.fix_quality
-      buff.write(_get_struct_B().pack(_x))
+      buff.write(_get_struct_b().pack(_x))
     except struct.error as se: self._check_types(struct.error("%s: '%s' when writing '%s'" % (type(se), str(se), str(locals().get('_x', self)))))
     except TypeError as te: self._check_types(ValueError("%s: '%s' when writing '%s'" % (type(te), str(te), str(locals().get('_x', self)))))
 
@@ -187,7 +187,7 @@ string frame_id
         self.gngga_read = str[start:end]
       start = end
       end += 1
-      (self.fix_quality,) = _get_struct_B().unpack(str[start:end])
+      (self.fix_quality,) = _get_struct_b().unpack(str[start:end])
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e)  # most likely buffer underfill
@@ -225,7 +225,7 @@ string frame_id
         length = len(_x)
       buff.write(struct.Struct('<I%ss'%length).pack(length, _x))
       _x = self.fix_quality
-      buff.write(_get_struct_B().pack(_x))
+      buff.write(_get_struct_b().pack(_x))
     except struct.error as se: self._check_types(struct.error("%s: '%s' when writing '%s'" % (type(se), str(se), str(locals().get('_x', self)))))
     except TypeError as te: self._check_types(ValueError("%s: '%s' when writing '%s'" % (type(te), str(te), str(locals().get('_x', self)))))
 
@@ -281,7 +281,7 @@ string frame_id
         self.gngga_read = str[start:end]
       start = end
       end += 1
-      (self.fix_quality,) = _get_struct_B().unpack(str[start:end])
+      (self.fix_quality,) = _get_struct_b().unpack(str[start:end])
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e)  # most likely buffer underfill
@@ -302,12 +302,12 @@ def _get_struct_5dB():
     if _struct_5dB is None:
         _struct_5dB = struct.Struct("<5dB")
     return _struct_5dB
-_struct_B = None
-def _get_struct_B():
-    global _struct_B
-    if _struct_B is None:
-        _struct_B = struct.Struct("<B")
-    return _struct_B
+_struct_b = None
+def _get_struct_b():
+    global _struct_b
+    if _struct_b is None:
+        _struct_b = struct.Struct("<b")
+    return _struct_b
 _struct_d = None
 def _get_struct_d():
     global _struct_d

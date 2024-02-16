@@ -84,7 +84,7 @@ struct Customrtk_
    typedef std::basic_string<char, std::char_traits<char>, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<char>> _gngga_read_type;
   _gngga_read_type gngga_read;
 
-   typedef uint8_t _fix_quality_type;
+   typedef int8_t _fix_quality_type;
   _fix_quality_type fix_quality;
 
 
@@ -183,12 +183,12 @@ struct MD5Sum< ::gps_driver::Customrtk_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "e4935881a36ec47772473f094b6bd903";
+    return "38ea21115087fd4b55261127df6daa3a";
   }
 
   static const char* value(const ::gps_driver::Customrtk_<ContainerAllocator>&) { return value(); }
-  static const uint64_t static_value1 = 0xe4935881a36ec477ULL;
-  static const uint64_t static_value2 = 0x72473f094b6bd903ULL;
+  static const uint64_t static_value1 = 0x38ea21115087fd4bULL;
+  static const uint64_t static_value2 = 0x55261127df6daa3aULL;
 };
 
 template<class ContainerAllocator>
@@ -217,7 +217,7 @@ struct Definition< ::gps_driver::Customrtk_<ContainerAllocator> >
 "string letter\n"
 "float64 hdop\n"
 "string gngga_read\n"
-"uint8 fix_quality\n"
+"int8 fix_quality\n"
 "\n"
 "================================================================================\n"
 "MSG: std_msgs/Header\n"
@@ -303,7 +303,7 @@ struct Printer< ::gps_driver::Customrtk_<ContainerAllocator> >
     s << indent << "gngga_read: ";
     Printer<std::basic_string<char, std::char_traits<char>, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<char>>>::stream(s, indent + "  ", v.gngga_read);
     s << indent << "fix_quality: ";
-    Printer<uint8_t>::stream(s, indent + "  ", v.fix_quality);
+    Printer<int8_t>::stream(s, indent + "  ", v.fix_quality);
   }
 };
 

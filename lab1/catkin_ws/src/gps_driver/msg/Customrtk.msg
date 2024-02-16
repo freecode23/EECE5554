@@ -8,4 +8,4 @@ uint8 zone
 string letter
 float64 hdop
 string gngga_read
-uint8 fix_quality
+int8 fix_quality

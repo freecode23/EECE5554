@@ -140,6 +140,7 @@ def parseGNGGA(gnggaStr: str, customRTKmsg: Customrtk) -> Customrtk:
     hdop = float(gnggaSplit[gngga.HDOP]) #float
     altitude = float(gnggaSplit[gngga.ALTITUDE])
 
+
     # Convert to Signed decimal degree
     latDegDec = degMinstoDegDec(False, latitude)
     longDegDec = degMinstoDegDec(True, longitude)
@@ -160,6 +161,7 @@ def parseGNGGA(gnggaStr: str, customRTKmsg: Customrtk) -> Customrtk:
     customRTKmsg.zone = utmVals[2]
     customRTKmsg.letter = utmVals[3]
     customRTKmsg.hdop = hdop
+    customRTKmsg.fix_quality = int(fixQuality)
     customRTKmsg.gngga_read = gnggaStr
     customRTKmsg.header.stamp.secs = currentTime[0]
     customRTKmsg.header.stamp.nsecs = currentTime[1]
