@@ -27,7 +27,7 @@ WALK_RTK = f"walking{RTK}"
 
 # Replace with True if we want to first convert the bag file to csv.
 CONVERT_ROSBAG_TO_CSV = False
-scenario = STATIONARY_RTK
+scenario = STATIONARY
 
 # Get the bag and csv filepath.
 if scenario == CHICAGO or scenario == WALK_RTK:
@@ -309,7 +309,7 @@ def plotStationaryHistogram(csv_filepaths: list, plot_filepath: str):
         df['euclidean_distance'] = np.sqrt((df['easting_normalized'] - centroid_easting)**2 + (df['northing_normalized'] - centroid_northing)**2)
 
         # Extract the file name from the file path for the plot title.
-        filename = os.path.splitext(os.path.basename(csv_file))[1]
+        filename = os.path.splitext(os.path.basename(csv_file))[0]
 
         # Create a histogram plot.
         fig = px.histogram(df, x='euclidean_distance', 
