@@ -7,26 +7,35 @@ import numpy as np
 from allantools import oadev
 import matplotlib.pyplot as plt
 
-IMAGE_EXTENSION = "png"
-DATA_DIR = "../data"
-TAU = "Tau"
-ADEV = "Adev"
 
-# Scenario selections:
+# SELECT: 
+# 1) Scenario:
 LOCATION_C = "locationC"
 LIVE_CAPTURE = "live_capture"
-SCENARIO = LOCATION_C
+SCENARIO = LIVE_CAPTURE
 
-# Convert to csv:
-CONVERT_ROSBAG_TO_CSV = False
+# 2) Convert to csv:
+CONVERT_ROSBAG_TO_CSV = True
 
-# Compute oadev again:
-# Test
+# 3) Compute oadev again:
 COMPUTE_OADEV = False
+if CONVERT_ROSBAG_TO_CSV == True:
+    COMPUTE_OADEV = True
 
-PLOT_DIR = f"{DATA_DIR}/plots/{SCENARIO}"
+
+# Global constants
+IMAGE_EXTENSION = "png"
+TAU = "Tau"
+ADEV = "Adev"
+TOPIC = "/imu"
+if SCENARIO == LOCATION_C:
+    TOPIC = "/vectornav"
+FIGSIZE = (14, 12)
 
 # Create the bag and csv filepaths.
+DATA_DIR = "../data"
+PLOT_DIR = f"{DATA_DIR}/plots/{SCENARIO}"
+
 filename = SCENARIO
 bag_filepath = f'{DATA_DIR}/{SCENARIO}/{filename}.bag'
 bag_filepaths = [bag_filepath]
@@ -95,6 +104,7 @@ def plot_allan_bias_instability(taus, adevs, axis):
     plt.loglog(taus, adevs, label='σ')
     plt.loglog(taus, lineB, '--', label='σ_B')
     plt.loglog(tauB, scfB*B, 'o', label='Bias Instability')
+    plt.text(tauB, scfB*B, f'τB={tauB:.2f}s', ha='right', va='bottom')
 
     plt.title('Allan Deviation with Bias Instability {axis}')
     plt.xlabel('τ (s)')
@@ -104,6 +114,8 @@ def plot_allan_bias_instability(taus, adevs, axis):
     plot_path = os.path.join(PLOT_DIR, f'bias_instability_{axis}.png')
     plt.savefig(plot_path)
     plt.close()
+
+    return tauB, lineB, scfB * B
 
 
 def plot_allan_angle_random_walk(tau, adev, axis):
@@ -139,6 +151,7 @@ def plot_allan_angle_random_walk(tau, adev, axis):
     plot_path = os.path.join(PLOT_DIR, f'angle_random_walk_{axis}.png')
     plt.savefig(plot_path)
     plt.close()
+    return tauN, lineN, N
 
 
 def plot_allan_rate_random_walk(taus, adevs, axis):
@@ -161,6 +174,7 @@ def plot_allan_rate_random_walk(taus, adevs, axis):
     K = 10**logK
     
     # Plot the results
+    tauK = 3
     lineK = K * np.sqrt(taus/3)
     
     plt.figure()
@@ -168,7 +182,7 @@ def plot_allan_rate_random_walk(taus, adevs, axis):
     plt.loglog(taus, lineK, '--', label='σ_K')
     
     # Plot the rate random walk coefficient K at tau = 3
-    plt.loglog(3, K, 'o', label='Rate Random Walk')
+    plt.loglog(tauK, K, 'o', label='Rate Random Walk')
     
     plt.title('Allan Deviation with Rate Random Walk - ' + axis)
     plt.xlabel('τ (s)')
@@ -179,6 +193,7 @@ def plot_allan_rate_random_walk(taus, adevs, axis):
     plot_path = os.path.join(PLOT_DIR, f'rate_random_walk_{axis}.png')
     plt.savefig(plot_path)
     plt.close()
+    return tauK, lineK, K
 
 
 def save_oadev_to_csv(taus, adevs, axis, filepath):
@@ -187,17 +202,16 @@ def save_oadev_to_csv(taus, adevs, axis, filepath):
 
     # Save the DataFrame to CSV
     df.to_csv(filepath, index=False)
-    print(f"Saved oadev for {axis} to {filepath}")
 
 
-def plot_allan_variance(gyro_data):
+def plot_allan_variance_and_noise(gyro_data):
     """
-    For each axis plot:
+    Given gyro data in `rad/s`, for each axis, plot:
     0) Bias Instability
     1) Allen Deviation with Angle Random Walk
     2) Rate Random Walk
     """
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=FIGSIZE)
     for axis, data in gyro_data.items():
         # Prepare the filepath to save or load tau and oadev data.
         filename = f'oadev_{axis}.csv'
@@ -216,13 +230,39 @@ def plot_allan_variance(gyro_data):
             adevs = df[ADEV].to_numpy()
 
         # Plot B (bias instability)
-        plot_allan_bias_instability(taus, adevs, axis)
+        tauB, lineB, scfB_mult_b = plot_allan_bias_instability(taus, adevs, axis)
 
         # Plot N (angle random walk)
-        plot_allan_angle_random_walk(taus, adevs, axis)
+        tauN, lineN, N = plot_allan_angle_random_walk(taus, adevs, axis)
             
         # Plot K (rate_random_walk)
-        plot_allan_rate_random_walk(taus, adevs, axis)
+        tauK, lineK, K = plot_allan_rate_random_walk(taus, adevs, axis)
+
+        plt.figure()
+        plt.loglog(taus, adevs, label='$\sigma$ (rad/s)')  # Plot Allan deviation
+        plt.loglog(taus, lineN, 'r--', label='$\sigma_N ((rad/s)/\sqrt{Hz})$')  # Plot N
+        plt.loglog(taus, lineK, 'g--', label='$\sigma_K ((rad/s)\\sqrt{Hz})$')  # Plot K
+        plt.loglog(taus, lineB, 'b--', label='$\sigma_B (rad/s)$')  # Plot B
+
+        # Mark the specific points for N, K, B
+        plt.plot(tauN, N, 'ro')  # Mark N
+        plt.plot(tauK, K, 'go')  # Mark K
+        plt.plot(tauB, scfB_mult_b, 'bo')  # Mark B
+
+        # Add text annotations
+        plt.text(tauN, N, 'N')
+        plt.text(tauK, K, 'K')
+        plt.text(tauB, scfB_mult_b, '0.664B')
+
+        plt.title('Allan Deviation with Noise Parameters')
+        plt.xlabel('$\\tau$')
+        plt.ylabel('$\sigma(\\tau)$')
+        plt.legend()
+        plt.grid(True)
+
+        plot_path = os.path.join(PLOT_DIR, f'allan_and_noise_{axis}.png')
+        plt.savefig(plot_path)
+        plt.close()
 
 
 def plot_gyro(data):
@@ -230,7 +270,7 @@ def plot_gyro(data):
     Plot Gyro against time for each axis in different fig.
     """
     time = data['elapsed_time'].to_numpy()
-    plt.figure(figsize=(14, 12))
+    plt.figure(figsize=FIGSIZE)
     
     # Plotting gyro data on three subplots
     for i, axis in enumerate(['x', 'y', 'z'], 1):
@@ -239,7 +279,7 @@ def plot_gyro(data):
         plt.subplot(3, 1, i)
         plt.plot(time, accel_data, label=f'Gyro {axis.upper()}')
         plt.xlabel('Time (s)')
-        plt.ylabel('Rotational Rate (degrees/s)')
+        plt.ylabel('Rotational Rate (rad/s)')
         plt.title(f'Gyro {axis.upper()}')
         plt.legend(loc='upper right')
         plt.grid(True)
@@ -253,7 +293,7 @@ def plot_accel(data):
     Plot Acceleration against time for each axis each in different fig.
     """
     time = data['elapsed_time'].to_numpy()
-    plt.figure(figsize=(14, 12))
+    plt.figure(figsize=FIGSIZE)
     
     # Plotting acceleration data on three subplots
     for i, axis in enumerate(['x', 'y', 'z'], 1):
@@ -277,7 +317,7 @@ def plot_yaw_pitch_roll(data):
     Plot Yaw Pitch Roll against time for each axis in different fig.
     """
     time = data['elapsed_time'].to_numpy()
-    plt.figure(figsize=(14, 12))
+    plt.figure(figsize=FIGSIZE)
     
     # Plotting yaw, pitch, and roll on three subplots
     for i, axis in enumerate(['yaw', 'pitch', 'roll'], 1):
@@ -333,8 +373,9 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
             writer.writeheader()
 
             # Iterate through each row and get each field.
-            for topic, msg, t in bag.read_messages(topics=['/vectornav']):
-                print("\nmsg_data=", msg.header)
+            for topic, msg, t in bag.read_messages(topics=[TOPIC]):
+                # print("\nmsg_data=", msg.header)
+
                 # Calculate elapsed time since the start of the bag file
                 stamp = msg.header.stamp
                 if first_stamp is None:
@@ -343,20 +384,24 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
                 else:
                     elapsed_time = stamp.to_sec() - first_stamp
 
-                # Get the yaw pitch roll
-                vnymrSplit = msg.data.split(',')  # Split the string by comma
-
                 # Parse each component and convert to the appropriate data type
+                vnymrSplit = ""
+                if SCENARIO == LOCATION_C:
+                    vnymrSplit = msg.data.split(',') 
+                else:
+                    vnymrSplit = msg.vnymr_read.split(',') 
+
+                # Get the yaw pitch roll (deg)
                 yaw = clean_and_convert_to_float(vnymrSplit[VNYMR.Yaw])
                 pitch = clean_and_convert_to_float(vnymrSplit[VNYMR.Pitch])
                 roll = clean_and_convert_to_float(vnymrSplit[VNYMR.Roll])
 
-                # Get accel x, y z
+                # Get accel x, y z (m/s^2)
                 accel_x = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelX])
                 accel_y = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelY])
                 accel_z = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelZ])
 
-                # Get the gyro data.
+                # Get the gyro data (rad/s^2)
                 gyro_x = clean_and_convert_to_float(vnymrSplit[VNYMR.GyroX])
                 gyro_y = clean_and_convert_to_float(vnymrSplit[VNYMR.GyroY])
                 gyro_z_str = vnymrSplit[VNYMR.GyroZ].split('*')[0]  # Split off any potential checksum before cleaning
@@ -379,6 +424,7 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
                 }
                 writer.writerow(row_dict)
 
+    print("finish convert rosbag to csv")
 
 if __name__ == '__main__':
     if not os.path.exists(PLOT_DIR):
@@ -392,28 +438,25 @@ if __name__ == '__main__':
     data = pd.read_csv(csv_filepaths[0])
 
     # Plot Allan Variance
-    if SCENARIO == LOCATION_C:
-        gyro_data = {
-            'x': data['gyro_x'].dropna().to_numpy(),
-            'y': data['gyro_y'].dropna().to_numpy(),
-            'z': data['gyro_z'].dropna().to_numpy(),
-        }
-        print("Plotting allan variance")
-        plot_allan_variance(gyro_data)
-
-        # exit(0)
+    gyro_data = {
+        'x': data['gyro_x'].dropna().to_numpy(),
+        'y': data['gyro_y'].dropna().to_numpy(),
+        'z': data['gyro_z'].dropna().to_numpy(),
+    }
+    print("Plotting allan variance")
+    plot_allan_variance_and_noise(gyro_data)
 
     # Plotting Gyro, Accel, Yaw Pitch Roll
-    print("Plotting Gyro Data")
+    print("\nPlotting Gyro Data")
     plot_gyro(data)
 
-    print("Plotting Accelerometer Data")
+    print("\nPlotting Accelerometer Data")
     plot_accel(data)
 
-    print("Plotting Yaw, Pitch, Roll")
+    print("\nPlotting Yaw, Pitch, Roll")
     plot_yaw_pitch_roll(data)
 
-    print("Plotting Rotation Histograms")
+    print("\nPlotting Rotation Histograms")
     plot_rotation_histograms(data)
 
 

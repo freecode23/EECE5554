@@ -7,3 +7,5 @@ __pycache__/
 
 locationC.csv
 locationC.bag
+live_capture.csv
+live_capture.bag

@@ -3,7 +3,6 @@ import rospy
 import serial
 import os
 import math
-from decimal import Decimal
 from geometry_msgs.msg import Quaternion, Vector3
 from sensor_msgs.msg import Imu, MagneticField
 from std_msgs.msg import Header
@@ -58,20 +57,18 @@ class VNYMR:
     GyroY = 11
     GyroZ = 12
 
-def convert_to_quaternion(roll, pitch, yaw):
+def convert_to_quaternion(roll_deg, pitch_deg, yaw_deg):
     # Convert degrees to radians
-    phi = math.radians(roll)
-    theta = math.radians(pitch)
-    psi = math.radians(yaw)
+    roll_rad = math.radians(roll_deg)
+    pitch_rad = math.radians(pitch_deg)
+    yaw_rad = math.radians(yaw_deg)
 
-    # Compute the quaternion components
-    q0 = math.cos(phi/2) * math.cos(theta/2) * math.cos(psi/2) + math.sin(phi/2) * math.sin(theta/2) * math.sin(psi/2)
-    q1 = math.sin(phi/2) * math.cos(theta/2) * math.cos(psi/2) - math.cos(phi/2) * math.sin(theta/2) * math.sin(psi/2)
-    q2 = math.cos(phi/2) * math.sin(theta/2) * math.cos(psi/2) + math.sin(phi/2) * math.cos(theta/2) * math.sin(psi/2)
-    q3 = math.cos(phi/2) * math.cos(theta/2) * math.sin(psi/2) - math.sin(phi/2) * math.sin(theta/2) * math.cos(psi/2)
-
+    qx = math.sin(roll_rad/2) * math.cos(pitch_rad/2) * math.cos(yaw_rad/2) - math.cos(roll_rad/2) * math.sin(pitch_rad/2) * math.sin(yaw_rad/2)
+    qy = math.cos(roll_rad/2) * math.sin(pitch_rad/2) * math.cos(yaw_rad/2) + math.sin(roll_rad/2) * math.cos(pitch_rad/2) * math.sin(yaw_rad/2)
+    qz = math.cos(roll_rad/2) * math.cos(pitch_rad/2) * math.sin(yaw_rad/2) - math.sin(roll_rad/2) * math.sin(pitch_rad/2) * math.cos(yaw_rad/2)
+    qw = math.cos(roll_rad/2) * math.cos(pitch_rad/2) * math.cos(yaw_rad/2) + math.sin(roll_rad/2) * math.sin(pitch_rad/2) * math.sin(yaw_rad/2)
     # Return the quaternion
-    return q0, q1, q2, q3
+    return qx, qy, qz, qw
     
 def isVNYMRinString(inputString):
     if '$VNYMR' in inputString:
@@ -104,16 +101,16 @@ def parseVNYMR(vnymrStr: str, vectorNavMsg: Vectornav) -> Vectornav:
 
     # Assign all fields to the message object
     # 1. IMU
-
-    # - orientation from the quaternion
+    # - orientation from the quaternion (radians)
     quaternion = convert_to_quaternion(roll, pitch, yaw)
-    # print("quarternion=", quaternion)
     vectorNavMsg.imu.orientation = Quaternion(*quaternion)
+    print(f"\nroll={roll}, pitch={pitch}, yaw={yaw}")
+    print("quarternion=", quaternion)
 
-    # - angular velocity
+    # - angular velocity (rad/s)
     vectorNavMsg.imu.angular_velocity = Vector3(x=gyro_x, y=gyro_y, z=gyro_z)
 
-    # - linear acceleration
+    # - linear acceleration (m/s^2)
     vectorNavMsg.imu.linear_acceleration = Vector3(x=accel_x, y=accel_y, z=accel_z)
 
     # 2. Mag Field
@@ -174,7 +171,7 @@ if __name__ == '__main__':
                     continue
 
                 #5.2 Write vnymrStr to .txt file.
-                print("vntmrStr=", vnymrStr)
+                # print("vntmrStr=", vnymrStr)
                 file.write(vnymrStr + '\n')
                 file.flush()
                 
