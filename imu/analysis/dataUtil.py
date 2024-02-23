@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 # 1) Scenario:
 LOCATION_C = "locationC"
 LIVE_CAPTURE = "live_capture"
-SCENARIO = LIVE_CAPTURE
+SCENARIO = LOCATION_C
 
 # 2) Convert to csv:
-CONVERT_ROSBAG_TO_CSV = True
+CONVERT_ROSBAG_TO_CSV = False
 
 # 3) Compute oadev again:
 COMPUTE_OADEV = False
@@ -104,7 +104,7 @@ def plot_allan_bias_instability(taus, adevs, axis):
     plt.loglog(taus, adevs, label='σ')
     plt.loglog(taus, lineB, '--', label='σ_B')
     plt.loglog(tauB, scfB*B, 'o', label='Bias Instability')
-    plt.text(tauB, scfB*B, f'τB={tauB:.2f}s', ha='right', va='bottom')
+    plt.text(tauB, scfB*B, f'0.664B', ha='right', va='bottom')
 
     plt.title('Allan Deviation with Bias Instability {axis}')
     plt.xlabel('τ (s)')
@@ -284,7 +284,8 @@ def plot_gyro(data):
         plt.legend(loc='upper right')
         plt.grid(True)
     
-    plot_path = os.path.join(PLOT_DIR, 'gyro.png')  # Specify your desired file name
+    plt.subplots_adjust(hspace=0.5)  # 'hspace' controls the height between subplots
+    plot_path = os.path.join(PLOT_DIR, 'gyro.png')  
     plt.savefig(plot_path)
 
 
