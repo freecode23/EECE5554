@@ -1,0 +1,2 @@
+vn_driver
+-DCATKIN_DEVEL_PREFIX=/home/sherly/Desktop/code/EECE5554/imu/devel -DCMAKE_INSTALL_PREFIX=/home/sherly/Desktop/code/EECE5554/imu/install -G Unix Makefiles

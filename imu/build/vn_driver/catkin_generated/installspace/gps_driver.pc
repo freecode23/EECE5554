@@ -1,0 +1,8 @@
+prefix=/home/sherly/Desktop/code/EECE5554/imu/install
+
+Name: gps_driver
+Description: Description of gps_driver
+Version: 0.0.0
+Cflags: -I${prefix}/include
+Libs: -L${prefix}/lib 
+Requires: 
