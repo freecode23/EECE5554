@@ -250,16 +250,17 @@ def plot_allan_variance_and_noise(gyro_data):
         plt.plot(tauB, scfB_mult_b, 'bo')  # Mark B
 
         # Add text annotations
-        plt.text(tauN, N, 'N')
-        plt.text(tauK, K, 'K')
-        plt.text(tauB, scfB_mult_b, '0.664B')
+        plt.text(tauN, N, f'N = {N:.2e}')
+        plt.text(tauK, K, f'K = {K:.2e}')
+        plt.text(tauB, scfB_mult_b, f'0.664B = {scfB_mult_b:.2e}')
 
-        plt.title('Allan Deviation with Noise Parameters')
-        plt.xlabel('$\\tau$')
+        plt.title(f'Allan Deviation with Noise Parameters {axis}-Axis')
+        plt.xlabel('$\\tau$ (seconds)')
         plt.ylabel('$\sigma(\\tau)$')
         plt.legend()
         plt.grid(True)
 
+        plt.tight_layout()
         plot_path = os.path.join(PLOT_DIR, f'allan_and_noise_{axis}.png')
         plt.savefig(plot_path)
         plt.close()
