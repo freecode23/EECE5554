@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # 1) Scenario:
 LOCATION_C = "locationC"
 LIVE_CAPTURE = "live_capture"
-SCENARIO = LOCATION_C
+SCENARIO = LIVE_CAPTURE
 
 # 2) Convert to csv:
 CONVERT_ROSBAG_TO_CSV = False
@@ -275,7 +275,7 @@ def plot_gyro(data):
     
     # Plotting gyro data on three subplots
     for i, axis in enumerate(['x', 'y', 'z'], 1):
-        accel_data = data[f'accel_{axis}'].dropna().to_numpy()
+        accel_data = data[f'gyro_{axis}'].dropna().to_numpy()
 
         plt.subplot(3, 1, i)
         plt.plot(time, accel_data, label=f'Gyro {axis.upper()}')
@@ -386,7 +386,8 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
                 else:
                     elapsed_time = stamp.to_sec() - first_stamp
 
-                # Parse each component and convert to the appropriate data type
+                # Parse the vnymr string (not from the VectorNav object. 
+                # Since its already available just from the string and its already in degree.
                 vnymrSplit = ""
                 if SCENARIO == LOCATION_C:
                     vnymrSplit = msg.data.split(',') 

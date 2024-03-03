@@ -86,7 +86,7 @@ def parseVNYMR(vnymrStr: str, vectorNavMsg: Vectornav) -> Vectornav:
     vectorNavMsg.vnymr_read = vnymrStr
 
     # Parse each component and convert to the appropriate data type
-    yaw = float(vnymrSplit[VNYMR.Yaw])
+    yaw = float(vnymrSplit[VNYMR.Yaw]) # in degrees.
     pitch = float(vnymrSplit[VNYMR.Pitch])
     roll = float(vnymrSplit[VNYMR.Roll])
     mag_x = float(vnymrSplit[VNYMR.MagX])
