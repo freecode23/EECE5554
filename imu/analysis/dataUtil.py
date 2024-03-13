@@ -1,7 +1,6 @@
 import rosbag
 import csv
 import pandas as pd
-import plotly.graph_objects as go
 import os
 import numpy as np
 from allantools import oadev
@@ -12,10 +11,11 @@ import matplotlib.pyplot as plt
 # 1) Scenario:
 LOCATION_C = "locationC"
 LIVE_CAPTURE = "live_capture"
+DEAD_RECKONING = "dead_reckoning"
 SCENARIO = LIVE_CAPTURE
 
 # 2) Convert to csv:
-CONVERT_ROSBAG_TO_CSV = False
+CONVERT_ROSBAG_TO_CSV = True
 
 # 3) Compute oadev again:
 COMPUTE_OADEV = False
@@ -76,7 +76,90 @@ def clean_and_convert_to_float(value_str):
         print(f"Error converting to float: {e}. Original string: '{value_str}', Cleaned string: '{cleaned_str}'")
         return None  # Or choose a default value, or raise an exception
 
+def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
+    for i in range(len(bag_filepaths)):
+        bag_filepath = bag_filepaths[i]
+        csv_filepath = csv_filepaths[i]
+        first_stamp = None
+        # Open the rosbag
+        with rosbag.Bag(bag_filepath, 'r') as bag, open(csv_filepath, 'w', newline='') as csvfile:
+            fieldnames = ['seq', 'stamp',
+                          'elapsed_time', # time from 0
+                          'yaw', 'pitch', 'roll', 
+                          'mag_x', 'mag_y', 'mag_z',
+                          'accel_x', 'accel_y', 'accel_z',
+                          'gyro_x', 'gyro_y', 'gyro_z', 
+                          ]
+            # Create the csv file
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
 
+            # Iterate through each row and get each field.
+            for topic, msg, t in bag.read_messages(topics=[TOPIC]):
+                # print("\nmsg_data=", msg.header)
+
+                # Calculate elapsed time since the start of the bag file
+                stamp = msg.header.stamp
+                if first_stamp is None:
+                    first_stamp = stamp.to_sec()
+                    elapsed_time = 0
+                else:
+                    elapsed_time = stamp.to_sec() - first_stamp
+
+                # Parse the vnymr string (not from the VectorNav object). 
+                # Since its already available just from the string and its already in degree.
+                vnymrSplit = ""
+                if SCENARIO == LOCATION_C:
+                    vnymrSplit = msg.data.split(',') 
+                else:
+                    vnymrSplit = msg.vnymr_read.split(',') 
+
+                # Get the yaw pitch roll (deg)
+                yaw = clean_and_convert_to_float(vnymrSplit[VNYMR.Yaw])
+                pitch = clean_and_convert_to_float(vnymrSplit[VNYMR.Pitch])
+                roll = clean_and_convert_to_float(vnymrSplit[VNYMR.Roll])
+
+                # Get the mag data
+                mag_x = clean_and_convert_to_float(vnymrSplit[VNYMR.MagX])
+                mag_y = clean_and_convert_to_float(vnymrSplit[VNYMR.MagY])
+                mag_z = clean_and_convert_to_float(vnymrSplit[VNYMR.MagZ])
+                
+                # Get accel x, y z (m/s^2)
+                accel_x = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelX])
+                accel_y = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelY])
+                accel_z = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelZ])
+
+                # Get the gyro data (rad/s^2)
+                gyro_x = clean_and_convert_to_float(vnymrSplit[VNYMR.GyroX])
+                gyro_y = clean_and_convert_to_float(vnymrSplit[VNYMR.GyroY])
+                gyro_z_str = vnymrSplit[VNYMR.GyroZ].split('*')[0]  # Split off any potential checksum before cleaning
+                gyro_z = clean_and_convert_to_float(gyro_z_str)
+
+
+                # Write to csv
+                row_dict = {
+                    'seq': msg.header.seq,
+                    'stamp': msg.header.stamp.to_sec(),
+                    'elapsed_time': elapsed_time,
+                    'yaw': yaw,
+                    'pitch': pitch,
+                    'roll': roll,
+                    'mag_x': mag_x,
+                    'mag_y': mag_y,
+                    'mag_z': mag_z,
+                    'accel_x': accel_x,
+                    'accel_y': accel_y,
+                    'accel_z': accel_z,
+                    'gyro_x': gyro_x,
+                    'gyro_y': gyro_y,
+                    'gyro_z': gyro_z,
+                }
+                writer.writerow(row_dict)
+
+    print("finish convert rosbag to csv")
+
+
+# Lab3: Allan Deviation
 def plot_allan_bias_instability(taus, adevs, axis):
     # Convert to log scale
     logtau = np.log10(taus)
@@ -357,78 +440,6 @@ def plot_rotation_histograms(data):
     plt.savefig(plot_path)
 
 
-def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
-    for i in range(len(bag_filepaths)):
-        bag_filepath = bag_filepaths[i]
-        csv_filepath = csv_filepaths[i]
-        first_stamp = None
-        # Open the rosbag
-        with rosbag.Bag(bag_filepath, 'r') as bag, open(csv_filepath, 'w', newline='') as csvfile:
-            fieldnames = ['seq', 'stamp',
-                          'elapsed_time', # time from 0
-                          'yaw', 'pitch', 'roll', 
-                          'accel_x', 'accel_y', 'accel_z',
-                          'gyro_x', 'gyro_y', 'gyro_z', 
-                          ]
-            # Create the csv file
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-
-            # Iterate through each row and get each field.
-            for topic, msg, t in bag.read_messages(topics=[TOPIC]):
-                # print("\nmsg_data=", msg.header)
-
-                # Calculate elapsed time since the start of the bag file
-                stamp = msg.header.stamp
-                if first_stamp is None:
-                    first_stamp = stamp.to_sec()
-                    elapsed_time = 0
-                else:
-                    elapsed_time = stamp.to_sec() - first_stamp
-
-                # Parse the vnymr string (not from the VectorNav object. 
-                # Since its already available just from the string and its already in degree.
-                vnymrSplit = ""
-                if SCENARIO == LOCATION_C:
-                    vnymrSplit = msg.data.split(',') 
-                else:
-                    vnymrSplit = msg.vnymr_read.split(',') 
-
-                # Get the yaw pitch roll (deg)
-                yaw = clean_and_convert_to_float(vnymrSplit[VNYMR.Yaw])
-                pitch = clean_and_convert_to_float(vnymrSplit[VNYMR.Pitch])
-                roll = clean_and_convert_to_float(vnymrSplit[VNYMR.Roll])
-
-                # Get accel x, y z (m/s^2)
-                accel_x = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelX])
-                accel_y = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelY])
-                accel_z = clean_and_convert_to_float(vnymrSplit[VNYMR.AccelZ])
-
-                # Get the gyro data (rad/s^2)
-                gyro_x = clean_and_convert_to_float(vnymrSplit[VNYMR.GyroX])
-                gyro_y = clean_and_convert_to_float(vnymrSplit[VNYMR.GyroY])
-                gyro_z_str = vnymrSplit[VNYMR.GyroZ].split('*')[0]  # Split off any potential checksum before cleaning
-                gyro_z = clean_and_convert_to_float(gyro_z_str)
-
-                # Write to csv
-                row_dict = {
-                    'seq': msg.header.seq,
-                    'stamp': msg.header.stamp.to_sec(),
-                    'elapsed_time': elapsed_time,
-                    'yaw': yaw,
-                    'pitch': pitch,
-                    'roll': roll,
-                    'accel_x': accel_x,
-                    'accel_y': accel_y,
-                    'accel_z': accel_z,
-                    'gyro_x': gyro_x,
-                    'gyro_y': gyro_y,
-                    'gyro_z': gyro_z,
-                }
-                writer.writerow(row_dict)
-
-    print("finish convert rosbag to csv")
-
 if __name__ == '__main__':
     if not os.path.exists(PLOT_DIR):
         os.makedirs(PLOT_DIR)
@@ -440,28 +451,28 @@ if __name__ == '__main__':
     # Load data from csv and plot
     data = pd.read_csv(csv_filepaths[0])
 
-    # Plot Allan Variance
-    gyro_data = {
-        'x': data['gyro_x'].dropna().to_numpy(),
-        'y': data['gyro_y'].dropna().to_numpy(),
-        'z': data['gyro_z'].dropna().to_numpy(),
-    }
-    print("Plotting allan variance")
-    plot_allan_variance_and_noise(gyro_data)
+    if SCENARIO != DEAD_RECKONING:
+        # Plot Allan Variance
+        gyro_data = {
+            'x': data['gyro_x'].dropna().to_numpy(),
+            'y': data['gyro_y'].dropna().to_numpy(),
+            'z': data['gyro_z'].dropna().to_numpy(),
+        }
+        print("Plotting allan variance")
+        plot_allan_variance_and_noise(gyro_data)
 
-    # Plotting Gyro, Accel, Yaw Pitch Roll
-    print("\nPlotting Gyro Data")
-    plot_gyro(data)
+        # Plotting Gyro, Accel, Yaw Pitch Roll
+        print("\nPlotting Gyro Data")
+        plot_gyro(data)
 
-    print("\nPlotting Accelerometer Data")
-    plot_accel(data)
+        print("\nPlotting Accelerometer Data")
+        plot_accel(data)
 
-    print("\nPlotting Yaw, Pitch, Roll")
-    plot_yaw_pitch_roll(data)
+        print("\nPlotting Yaw, Pitch, Roll")
+        plot_yaw_pitch_roll(data)
 
-    print("\nPlotting Rotation Histograms")
-    plot_rotation_histograms(data)
-
+        print("\nPlotting Rotation Histograms")
+        plot_rotation_histograms(data)
 
 
 

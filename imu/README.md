@@ -12,9 +12,15 @@ Allow sudo access to the device:
 sudo chmod 666 /dev/ttyS0
 ```
 
+Make sure latency is set to 1 ms:
+```
+cat /sys/bus/usb-serial/devices/ttyUSB0/latency_timer
+```
+
 ## Option B: Using IMU data emitter emulator
 To run the emulator program that will write IMU data to serial port, open a new terminal and run the IMU emulator from the `sensor_emulator` directory:
 ```
+python3 serial_emulator.py --file imu_data.txt --device_type imu --loop "yes" --VN_reg b'$VNWRG,07,40*XX'
 python3 serial_emulator.py --file imu_data.txt --device_type imu --loop "no"
 ```
 
@@ -41,13 +47,14 @@ source devel/setup.bash
 ```
 
 Step 2: In another terminal, run the ROS node that capture the data and publishes for the '/imu' topic:
+for emulator data:
 ```
-python3 serial_emulator.py --file imu_data.txt --device_type imu --loop "yes" --VN_reg b'$VNWRG,07,40*XX'
+roslaunch vn_driver driver.launch port:=/dev/pts/4 filename:=dead_reckoning
 ```
 
 for real IMU data from puck:
 ```
-roslaunch vn_driver driver.launch port:=/dev/ttyUSB0 filename:=live_capture
+roslaunch vn_driver driver.launch port:=/dev/ttyUSB0 filename:=dead_reckoning
 ```
 
 Step 3: In another terminal check if messages are correctly published for the topic:
@@ -58,12 +65,12 @@ rostopic echo /imu
 Step 4: Record the messages published on the topic and save as a bag file.
 ```
 cd data/
-rosbag record -O live_capture/live_capture.bag /imu
+rosbag record -O dead_reckoning/dead_reckoning.bag /imu
 ```
 
 Step 5: Exit the publisher node and the record program.
 
-Step 6: To save bag file as csv file, cd into the `data` directory, change the filename for the csv file,
+Step 6: To save bag file as csv file, cd into the `analysis` directory, change the filename for the csv file,
 uncomment the function call for `convert_rosbag_to_csv(bag_file, csv_file)`
  then run:
 ```
