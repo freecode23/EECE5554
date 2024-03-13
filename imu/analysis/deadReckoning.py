@@ -5,6 +5,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
+from scipy.integrate import cumulative_trapezoid
 
 
 # SELECT: 
@@ -178,11 +179,21 @@ def plot_magnetic_components(data, plot_dir='.', figsize=(12, 6)):
 
     # Setup for the "ideal" magnetic field model
     N = len(data)
-    field_strength = 20509e-9  # Tesla
-    angle = np.linspace(-np.pi, np.pi, N)
-    x_mag = field_strength * np.sin(angle)
-    y_mag = field_strength * np.cos(angle)
-    X_mag = np.array([x_mag, y_mag])
+    # CIRCLE:
+    if "CIRCLE" in SCENARIO:
+        field_strength = 20509e-9  # Tesla
+        angle = np.linspace(-np.pi, np.pi, N)
+        x_mag = field_strength * np.sin(angle)
+        y_mag = field_strength * np.cos(angle)
+        X_mag = np.array([x_mag, y_mag])
+    else:
+    # TODO: SQUARE
+        field_strength = 20509e-9  # Tesla
+        angle = np.linspace(-np.pi, np.pi, N)
+        x_mag = field_strength * np.sin(angle)
+        y_mag = field_strength * np.cos(angle)
+        X_mag = np.array([x_mag, y_mag])        
+
     
     # Extract measured magnetic field from the DataFrame
     x_meas = data['mag_x'].values
@@ -225,10 +236,6 @@ def plot_magnetic_components(data, plot_dir='.', figsize=(12, 6)):
 
 # 2) Fig 2-4: Plot rotational rate and rotation (integrate once from gyro and plot magnetometer heading by calculating atan(X/Y)) vs. time. 
 # Plot all three axes on three subplots per fig.
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-
 def plot_rotation_and_rotational_rate(data):
     """
     Process IMU data to plot and save:
@@ -257,16 +264,16 @@ def plot_rotation_and_rotational_rate(data):
     plt.close(fig)
 
     # Plot 2: Rotation calculated by integrating gyroscopic data over time
-    # Ensure the time differences are calculated for integration
-    data['time_diff'] = data['elapsed_time'].diff().fillna(0)
-
     # Integrate gyroscopic data to get rotation for each axis
-    gyro_rotations = {axis: np.cumsum(data[f'gyro_{axis}'] * data['time_diff']) for axis in ['x', 'y', 'z']}
     fig, axs = plt.subplots(3, 1, figsize=(12, 8))
+    gyro_integrated = {}
     for i, axis in enumerate(['x', 'y', 'z']):
-
+        # Integrate gyroscopic data to get rotation for each axis.
+        gyro_integrated[axis] = cumulative_trapezoid(data[f'gyro_{axis}'].to_numpy(), 
+                                                 data['elapsed_time'].to_numpy(), 
+                                                 initial=0)
         axs[i].plot(data['elapsed_time'].to_numpy(), 
-                    gyro_rotations[axis].to_numpy(), 
+                    gyro_integrated[axis], 
                     label=f'Gyro {axis} Integrated Rotation')
         axs[i].set_xlabel('Time (s)')
         axs[i].set_ylabel('Rotation (degrees)')
