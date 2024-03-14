@@ -3,8 +3,8 @@ import csv
 import pandas as pd
 import os
 import numpy as np
+from numpy import pi
 import matplotlib.pyplot as plt
-from scipy.optimize import least_squares
 from scipy.integrate import cumulative_trapezoid
 
 
@@ -14,9 +14,11 @@ LIVE_CAPTURE = "live_capture"
 DEAD_RECKONING_SQUARE = "dead_reckoning_square"
 DEAD_RECKONING_CIRCLE = "dead_reckoning_circle"
 
-SCENARIO = DEAD_RECKONING_SQUARE
+SCENARIO = DEAD_RECKONING_CIRCLE
 # 2) Convert to csv:
-CONVERT_ROSBAG_TO_CSV = True
+# Set this to false after we add corrected  magnetometer.
+# So that we don't overwrite from original rosbag.
+CONVERT_ROSBAG_TO_CSV = False
 
 # 3) Compute oadev again:
 COMPUTE_OADEV = False
@@ -153,19 +155,10 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
 
 
 # Lab4: Dead Reckoning plots:
-# 1) Fig1: Plot the N vs. E components of magnetic field and apply calibration to your dataset. Plot two sub-figs before and after calibration.
-#This function describes my mapping from measured data back to a circle
-def distortion_model(X_meas, dist_params):
-    x = dist_params[0] * (X_meas[0] - dist_params[4]) + dist_params[1]*(X_meas[1] - dist_params[5])
-    y = dist_params[2] * (X_meas[0] - dist_params[4]) + dist_params[3]*(X_meas[1] - dist_params[5])
-    X = np.array([x,y])
-    return X
-    
-#This function finds the difference between a circle and my transformed measurement
-def residual(p, X_mag, X_meas):
-    return (X_mag - distortion_model(X_meas, p)).flatten()
-
-def plot_magnetic_components(data, plot_dir='.', figsize=(12, 6)):
+# 1) Fig1: Plot the N vs. E components of magnetic field and apply calibration to your dataset. 
+# Plot two sub-figs before and after calibration.
+# This function describes my mapping from measured data back to a circle
+def plot_magnetic_components(data):
     """
     Plots the North vs. East components of the magnetic field from the dataset before and after calibration.
     
@@ -177,42 +170,17 @@ def plot_magnetic_components(data, plot_dir='.', figsize=(12, 6)):
     if 'mag_x' not in data.columns or 'mag_y' not in data.columns:
         raise ValueError("DataFrame must contain 'mag_x' and 'mag_y' columns")
 
-    # Setup for the "ideal" magnetic field model
-    N = len(data)
-    # CIRCLE:
-    if "CIRCLE" in SCENARIO:
-        field_strength = 20509e-9  # Tesla
-        angle = np.linspace(-np.pi, np.pi, N)
-        x_mag = field_strength * np.sin(angle)
-        y_mag = field_strength * np.cos(angle)
-        X_mag = np.array([x_mag, y_mag])
-    else:
-    # TODO: SQUARE
-        field_strength = 20509e-9  # Tesla
-        angle = np.linspace(-np.pi, np.pi, N)
-        x_mag = field_strength * np.sin(angle)
-        y_mag = field_strength * np.cos(angle)
-        X_mag = np.array([x_mag, y_mag])        
-
     
     # Extract measured magnetic field from the DataFrame
     x_meas = data['mag_x'].values
     y_meas = data['mag_y'].values
     X_meas = np.array([x_meas, y_meas])
 
-    # Initial guess for the distortion parameters
-    p0 = [1, 0, 0, 1, 0, 0]
-    # Perform least squares fitting
-    lsq_min = least_squares(residual, p0, args=(X_mag, X_meas))
-    
-    # Apply the calibration
-    X_model = distortion_model(X_meas, lsq_min.x)
-
     # Plotting
-    fig, axs = plt.subplots(1, 2, figsize=figsize)
+    fig, axs = plt.subplots(1, 2, figsize=FIGSIZE)
     
     # Before Calibration
-    axs[0].scatter(data['mag_x'], data['mag_y'], c='blue', label='Before Calibration')
+    axs[0].scatter(X_meas[0], X_meas[1], c='blue', label='Before Calibration')
     axs[0].set_title('Magnetic North vs. East Components Before Calibration')
     axs[0].set_xlabel('East Component (mag_x)')
     axs[0].set_ylabel('North Component (mag_y)')
@@ -220,18 +188,8 @@ def plot_magnetic_components(data, plot_dir='.', figsize=(12, 6)):
     axs[0].axis('equal')
     axs[0].legend()
     
-    # After Calibration
-    axs[1].scatter(X_model[0], X_model[1], c='red', label='After Calibration')
-    axs[1].plot(X_mag[0], X_mag[1], label="Ideal magnetic field", linestyle='--')
-    axs[1].set_title('After Calibration')
-    axs[1].set_xlabel('East Component (mag_x)')
-    axs[1].set_ylabel('North Component (mag_y)')
-    axs[1].grid(True)
-    axs[1].axis('equal')
-    axs[1].legend()
-    
     # Save the plot
-    plot_path = os.path.join(PLOT_DIR, 'mag_field_before_after_calib.png')
+    plot_path = os.path.join(PLOT_DIR, 'mag_field_before_Calib.png')
     plt.savefig(plot_path)
 
 # 2) Fig 2-4: Plot rotational rate and rotation (integrate once from gyro and plot magnetometer heading by calculating atan(X/Y)) vs. time. 
@@ -248,9 +206,8 @@ def plot_rotation_and_rotational_rate(data):
             and magnetometer data (magX, magY) after calibration.
     - plot_dir: Directory path where the plots will be saved.
     """
-
     # Plot 1: Rotational rates for GyroX, GyroY, GyroZ
-    fig, axs = plt.subplots(3, 1, figsize=(12, 8))
+    fig, axs = plt.subplots(3, 1, figsize=FIGSIZE)
     for i, axis in enumerate(['x', 'y', 'z']):
         elapsed_time_array = data['elapsed_time'].to_numpy()  # Convert to numpy array
         gyro_data_array = data[f'gyro_{axis}'].to_numpy()  # Convert to numpy array
@@ -260,18 +217,18 @@ def plot_rotation_and_rotational_rate(data):
         axs[i].legend()
 
     plt.tight_layout()
-    plt.savefig(os.path.join(PLOT_DIR, 'gyro_rotational_rates.png'))
+    plt.savefig(os.path.join(PLOT_DIR, 'rotational_rates_gyro.png'))
     plt.close(fig)
 
     # Plot 2: Rotation calculated by integrating gyroscopic data over time
     # Integrate gyroscopic data to get rotation for each axis
-    fig, axs = plt.subplots(3, 1, figsize=(12, 8))
+    fig, axs = plt.subplots(3, 1, figsize=FIGSIZE)
     gyro_integrated = {}
     for i, axis in enumerate(['x', 'y', 'z']):
         # Integrate gyroscopic data to get rotation for each axis.
         gyro_integrated[axis] = cumulative_trapezoid(data[f'gyro_{axis}'].to_numpy(), 
                                                  data['elapsed_time'].to_numpy(), 
-                                                 initial=0)
+                                                 initial=0) * (180 / pi)
         axs[i].plot(data['elapsed_time'].to_numpy(), 
                     gyro_integrated[axis], 
                     label=f'Gyro {axis} Integrated Rotation')
@@ -279,20 +236,20 @@ def plot_rotation_and_rotational_rate(data):
         axs[i].set_ylabel('Rotation (degrees)')
         axs[i].legend()
     plt.tight_layout()
-    plt.savefig(os.path.join(PLOT_DIR, 'gyro_integrated_rotation.png'))
+    plt.savefig(os.path.join(PLOT_DIR, 'rotation_gyro_integrated.png'))
     plt.close(fig)
 
     # Plot 3: Magnetometer heading
-    data['MagHeading'] = np.degrees(np.arctan2(data['mag_y'], data['mag_x']))
-    fig, ax = plt.subplots(figsize=(12, 4))
+    data['MagHeading'] = np.degrees(np.arctan2(data['mag_y_corr'], data['mag_x_corr']))
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     ax.plot(data['elapsed_time'].to_numpy(), 
             data['MagHeading'].to_numpy(), 
             label='Magnetometer Heading')
     ax.set_xlabel('Time (s)')
-    ax.set_ylabel('Heading (degrees)')
+    ax.set_ylabel('Rotation (degrees)')
     ax.legend()
     plt.tight_layout()
-    plt.savefig(os.path.join(PLOT_DIR, 'magnetometer_heading.png'))
+    plt.savefig(os.path.join(PLOT_DIR, 'rotation_magnetometer_heading.png'))
     plt.close(fig)
 
 
@@ -360,8 +317,8 @@ if __name__ == '__main__':
     # Load data from csv and plot
     data = pd.read_csv(csv_filepaths[0])
 
-    print("\n1. Plotting Magnetic components before and after calibration")
-    plot_magnetic_components(data)
+    # print("\n1. Plotting Magnetic components before and after calibration")
+    # plot_magnetic_components(data)
     
 
     print("\n2. Plotting rotation and rotational rate")
