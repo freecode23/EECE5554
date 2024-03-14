@@ -157,40 +157,7 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
 # Lab4: Dead Reckoning plots:
 # 1) Fig1: Plot the N vs. E components of magnetic field and apply calibration to your dataset. 
 # Plot two sub-figs before and after calibration.
-# This function describes my mapping from measured data back to a circle
-def plot_magnetic_components(data):
-    """
-    Plots the North vs. East components of the magnetic field from the dataset before and after calibration.
-    
-    Parameters:
-    - data: pandas DataFrame containing the dataset with magnetic field components.
-    - plot_dir: String. The directory where the plot image will be saved.
-    - figsize: Tuple. The figure size.
-    """
-    if 'mag_x' not in data.columns or 'mag_y' not in data.columns:
-        raise ValueError("DataFrame must contain 'mag_x' and 'mag_y' columns")
-
-    
-    # Extract measured magnetic field from the DataFrame
-    x_meas = data['mag_x'].values
-    y_meas = data['mag_y'].values
-    X_meas = np.array([x_meas, y_meas])
-
-    # Plotting
-    fig, axs = plt.subplots(1, 2, figsize=FIGSIZE)
-    
-    # Before Calibration
-    axs[0].scatter(X_meas[0], X_meas[1], c='blue', label='Before Calibration')
-    axs[0].set_title('Magnetic North vs. East Components Before Calibration')
-    axs[0].set_xlabel('East Component (mag_x)')
-    axs[0].set_ylabel('North Component (mag_y)')
-    axs[0].grid(True)
-    axs[0].axis('equal')
-    axs[0].legend()
-    
-    # Save the plot
-    plot_path = os.path.join(PLOT_DIR, 'mag_field_before_Calib.png')
-    plt.savefig(plot_path)
+# This is in MATLAB
 
 # 2) Fig 2-4: Plot rotational rate and rotation (integrate once from gyro and plot magnetometer heading by calculating atan(X/Y)) vs. time. 
 # Plot all three axes on three subplots per fig.
@@ -225,7 +192,7 @@ def plot_rotation_and_rotational_rate(data):
     fig, axs = plt.subplots(3, 1, figsize=FIGSIZE)
     gyro_integrated = {}
     for i, axis in enumerate(['x', 'y', 'z']):
-        # Integrate gyroscopic data to get rotation for each axis.
+        # Integrate gyros data to get rotation for each axis.
         gyro_integrated[axis] = cumulative_trapezoid(data[f'gyro_{axis}'].to_numpy(), 
                                                  data['elapsed_time'].to_numpy(), 
                                                  initial=0) * (180 / pi)
@@ -256,7 +223,7 @@ def plot_rotation_and_rotational_rate(data):
 # 3) Fig 5-7: Plot acceleration, velocity (integrate once), and displacement (integrate twice) vs. time as three subplots on all three axes (Fig. 5-7)
 def integrate(data):
     """
-    Integrate acceleration data to get velocity and displacement.
+    Integrate acceleration data to get velocity and displacement using cumulative_trapezoid.
     """
     time = data['elapsed_time'].to_numpy()
     dt = np.diff(time)  # Time intervals between measurements
@@ -269,12 +236,10 @@ def integrate(data):
         accel_data = data[f'accel_{axis}'].to_numpy()
 
         # Integrate acceleration to get velocity
-        for i in range(1, len(time)):
-            velocity[axis][i] = velocity[axis][i-1] + np.trapz([accel_data[i-1], accel_data[i]], dx=dt[i-1])
+        velocity[axis] = cumulative_trapezoid(accel_data, time, initial=0)
 
         # Integrate velocity to get displacement
-        for i in range(1, len(time)):
-            displacement[axis][i] = displacement[axis][i-1] + np.trapz([velocity[axis][i-1], velocity[axis][i]], dx=dt[i-1])
+        displacement[axis] = cumulative_trapezoid(velocity[axis], time, initial=0)
 
     return velocity, displacement
 
@@ -317,14 +282,10 @@ if __name__ == '__main__':
     # Load data from csv and plot
     data = pd.read_csv(csv_filepaths[0])
 
-    # print("\n1. Plotting Magnetic components before and after calibration")
-    # plot_magnetic_components(data)
-    
-
-    print("\n2. Plotting rotation and rotational rate")
+    print("\n1. Plotting rotation and rotational rate")
     plot_rotation_and_rotational_rate(data)
 
-    print("\n3. Plotting Acceleration, Velocity, Displacement")
+    print("\n2. Plotting Acceleration, Velocity, Displacement")
     plot_accel_velocity_displacement(data)
 
 

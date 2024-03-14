@@ -1,7 +1,7 @@
 % Magnetometer Calibration and Plotting
 
 % Shape variable: 'circle' or 'square'
-shape = 'square';
+shape = 'circle';
 
 % Use sprintf to dynamically create the file path
 filename = sprintf('../data/dead_reckoning_%s/dead_reckoning_%s.csv', shape, shape);
@@ -34,9 +34,8 @@ scatter(magArray(:,1), magArray(:,2), 'r');
 hold on;
 scatter(xCorrected(:,1), xCorrected(:,2), 'g');
 legend('Original', 'Corrected');
-xlabel('magX');
-ylabel('magY');
-ylabel('magZ');
+xlabel('magX (Gauss)');
+ylabel('magY (Gauss)');
 title(sprintf('Magnetometer Data Comparison: %s', shape)); 
 saveas(gcf, sprintf('../data/plots/dead_reckoning_%s/magnetometer_before_after_corr_%s.png', shape, shape));
 
