@@ -1,0 +1,8 @@
+prefix=/home/sherly/Desktop/code/EECE5554/gnss/devel
+
+Name: gps_driver
+Description: Description of gps_driver
+Version: 0.0.0
+Cflags: -I/home/sherly/Desktop/code/EECE5554/gnss/devel/include
+Libs: -L${prefix}/lib 
+Requires: 

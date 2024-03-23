@@ -18,8 +18,7 @@ SCENARIO = DEAD_RECKONING_CIRCLE
 # 2) Convert to csv:
 # Set this to false after we add corrected  magnetometer.
 # So that we don't overwrite from original rosbag.
-CONVERT_ROSBAG_TO_CSV = False
-
+CONVERT_ROSBAG_TO_CSV = True
 # 3) Compute oadev again:
 COMPUTE_OADEV = False
 if CONVERT_ROSBAG_TO_CSV == True:
@@ -29,7 +28,7 @@ if CONVERT_ROSBAG_TO_CSV == True:
 # Global constants
 IMAGE_EXTENSION = "png"
 TOPIC = "/imu"
-FIGSIZE = (14, 12)
+FIGSIZE = (18, 12)
 
 # Create the bag and csv filepaths.
 DATA_DIR = "../data"
@@ -41,7 +40,8 @@ bag_filepaths = [bag_filepath]
 
 csv_filepath = f'{DATA_DIR}/{SCENARIO}/{filename}.csv'
 csv_filepaths = [csv_filepath]
- 
+colors = {'x': 'blue', 'y': 'green', 'z': 'red'}
+
 class VNYMR:
     Yaw = 1
     Pitch = 2
@@ -158,6 +158,44 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
 # 1) Fig1: Plot the N vs. E components of magnetic field and apply calibration to your dataset. 
 # Plot two sub-figs before and after calibration.
 # This is in MATLAB
+def plot_magnetic_components(data):
+    """
+    Plots the North vs. East components of the magnetic field from the dataset before calibration.
+    
+    Parameters:
+    - data: pandas DataFrame containing the dataset with magnetic field components.
+    - plot_dir: String. The directory where the plot image will be saved.
+    - figsize: Tuple. The figure size.
+    """
+    if 'mag_x' not in data.columns or 'mag_y' not in data.columns:
+        raise ValueError("DataFrame must contain 'mag_x' and 'mag_y' columns")
+
+    # Setup for the "ideal" magnetic field model
+    N = len(data)  
+    
+    # Extract measured magnetic field from the DataFrame
+    x_meas = data['mag_x'].values
+    y_meas = data['mag_y'].values
+    X_meas = np.array([x_meas, y_meas])
+
+    # Plotting
+    fig, axs = plt.subplots(1, 1, figsize=FIGSIZE)
+    
+    # Before Calibration
+    axs.scatter(X_meas[0], X_meas[1], c='blue', label='Before Calibration')
+    axs.set_title('Magnetic North vs. East Components Before Calibration')
+    axs.set_xlabel('East Component (mag_x)')
+    axs.set_ylabel('North Component (mag_y)')
+    axs.grid(True)
+    axs.axis('equal')
+    axs.legend()
+    
+    # Save the plot
+    plot_path = os.path.join(PLOT_DIR, 'mag_field_before_calib.png')
+    plt.savefig(plot_path)
+
+
+
 
 # 2) Fig 2-4: Plot rotational rate and rotation (integrate once from gyro and plot magnetometer heading by calculating atan(X/Y)) vs. time. 
 # Plot all three axes on three subplots per fig.
@@ -175,10 +213,15 @@ def plot_rotation_and_rotational_rate(data):
     """
     # Plot 1: Rotational rates for GyroX, GyroY, GyroZ
     fig, axs = plt.subplots(3, 1, figsize=FIGSIZE)
+    fig.patch.set_facecolor('#f0f0f0')
+
     for i, axis in enumerate(['x', 'y', 'z']):
+        
         elapsed_time_array = data['elapsed_time'].to_numpy()  # Convert to numpy array
         gyro_data_array = data[f'gyro_{axis}'].to_numpy()  # Convert to numpy array
-        axs[i].plot(elapsed_time_array, gyro_data_array, label=f'Gyro {axis} Rotational Rate')
+        axs[i].set_facecolor('#f0f0f0')
+        axs[i].grid(True, color='white')
+        axs[i].plot(elapsed_time_array, gyro_data_array, label=f'Gyro {axis} Rotational Rate', color=colors[axis])
         axs[i].set_xlabel('Time (s)')
         axs[i].set_ylabel('Rate (rad/s)')
         axs[i].legend()
@@ -196,9 +239,13 @@ def plot_rotation_and_rotational_rate(data):
         gyro_integrated[axis] = cumulative_trapezoid(data[f'gyro_{axis}'].to_numpy(), 
                                                  data['elapsed_time'].to_numpy(), 
                                                  initial=0) * (180 / pi)
+        axs[i].set_facecolor('#f0f0f0')
+        axs[i].grid(True, color='white')
         axs[i].plot(data['elapsed_time'].to_numpy(), 
                     gyro_integrated[axis], 
-                    label=f'Gyro {axis} Integrated Rotation')
+                    label=f'Gyro {axis} Integrated Rotation',
+                    color=colors[axis]
+                    )
         axs[i].set_xlabel('Time (s)')
         axs[i].set_ylabel('Rotation (degrees)')
         axs[i].legend()
@@ -209,6 +256,9 @@ def plot_rotation_and_rotational_rate(data):
     # Plot 3: Magnetometer heading
     data['MagHeading'] = np.degrees(np.arctan2(data['mag_y_corr'], data['mag_x_corr']))
     fig, ax = plt.subplots(figsize=FIGSIZE)
+    ax.set_facecolor('#f0f0f0')
+    ax.grid(True, color='white')
+
     ax.plot(data['elapsed_time'].to_numpy(), 
             data['MagHeading'].to_numpy(), 
             label='Magnetometer Heading')
@@ -252,20 +302,21 @@ def plot_accel_velocity_displacement(data):
     
     # Plotting data
     for quantity, quantity_data in zip(['Acceleration', 'Velocity', 'Displacement'], [data, velocity, displacement]):
-        plt.figure(figsize=FIGSIZE)
+        fig = plt.figure(figsize=FIGSIZE)
+        fig.patch.set_facecolor('#f0f0f0')  # Set the face color for the figure here
+
         for i, axis in enumerate(['x', 'y', 'z'], 1):
             if quantity == 'Acceleration':
                 y_data = data[f'accel_{axis}'].dropna().to_numpy()
             else:
                 y_data = quantity_data[axis]
-                
             plt.subplot(3, 1, i)
-            plt.plot(time, y_data, label=f'{quantity} {axis.upper()}')
+            plt.plot(time, y_data, label=f'{quantity} {axis.upper()}', color=colors[axis])
             plt.xlabel('Time (s)')
             plt.ylabel(f'{quantity} ({"m/s^2" if quantity == "Acceleration" else "m/s" if quantity == "Velocity" else "m"})')
             plt.title(f'{quantity} {axis.upper()}')
             plt.legend(loc='upper right')
-            plt.grid(True)
+            plt.grid(True, color='white')
         
         plt.subplots_adjust(hspace=0.5)
         plot_path = os.path.join(PLOT_DIR, f'{quantity.lower()}.png')
@@ -281,12 +332,15 @@ if __name__ == '__main__':
 
     # Load data from csv and plot
     data = pd.read_csv(csv_filepaths[0])
+    plot_magnetic_components(data)
 
-    print("\n1. Plotting rotation and rotational rate")
-    plot_rotation_and_rotational_rate(data)
+    # Make sure to run the matlab manetometerCalib.py before running this.
+    # run : matlab -softwareopengl
+    # print("\n1. Plotting rotation and rotational rate")
+    # plot_rotation_and_rotational_rate(data)
 
-    print("\n2. Plotting Acceleration, Velocity, Displacement")
-    plot_accel_velocity_displacement(data)
+    # print("\n2. Plotting Acceleration, Velocity, Displacement")
+    # plot_accel_velocity_displacement(data)
 
 
 

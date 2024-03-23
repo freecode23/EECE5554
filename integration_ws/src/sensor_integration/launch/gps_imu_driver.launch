@@ -1,0 +1,21 @@
+<launch>
+    <!-- GPS Driver Arguments -->
+    <arg name="gps_port" default="/dev/ttyUSB0"/>
+    <arg name="gps_filename" default="dead_reckoning_gps"/>
+
+    <!-- IMU Driver Arguments -->
+    <arg name="imu_port" default="/dev/ttyUSB0"/>
+    <arg name="imu_filename" default="dead_reckoning_imu"/>
+
+    <!-- Launch the GPS driver node -->
+    <node name="gps_driver_node" pkg="gps_driver" type="standalone_driver.py" output="screen">
+        <param name="port" value="$(arg gps_port)"/>
+        <param name="filename" value="$(arg gps_filename)"/>
+    </node>
+
+    <!-- Launch the IMU driver node -->
+    <node name="vn_driver_node" pkg="vn_driver" type="driver.py" output="screen">
+        <param name="port" value="$(arg imu_port)"/>
+        <param name="filename" value="$(arg imu_filename)"/>
+    </node>
+</launch>

@@ -54,7 +54,7 @@ roslaunch vn_driver driver.launch port:=/dev/pts/4 filename:=dead_reckoning
 
 for real IMU data from puck:
 ```
-roslaunch vn_driver driver.launch port:=/dev/ttyUSB0 filename:=dead_reckoning
+roslaunch vn_driver driver.launch port:=/dev/ttyUSB0 filename:=dead_reckoning_circle
 ```
 
 Step 3: In another terminal check if messages are correctly published for the topic:
@@ -65,7 +65,7 @@ rostopic echo /imu
 Step 4: Record the messages published on the topic and save as a bag file.
 ```
 cd data/
-rosbag record -O dead_reckoning/dead_reckoning.bag /imu
+rosbag record -O dead_reckoning_circle/dead_reckoning_circle.bag /imu
 ```
 
 Step 5: Exit the publisher node and the record program.
@@ -83,3 +83,20 @@ rosbag info openWalk/openWalk.bag
 ```
 
 Then we can execute `rostopic echo gppga_topic` again we will see whats being published.
+
+# 3. Use script to:
+1. call roslaunch for gps and imu
+
+2. open terminal and check if there are messages for both topics:
+source devel/setup.bash
+rostopic echo /imu
+
+source devel/setup.bash
+rostopic echo /gps
+
+3. Open 2 another terminals and Record rosbag for both data:
+cd ..data/
+rosbag record -O dead_reckoning_circle/dead_reckoning_circle_imu.bag /imu
+
+cd ..data/
+rosbag record -O dead_reckoning_circle/dead_reckoning_circle_gps.bag /gps

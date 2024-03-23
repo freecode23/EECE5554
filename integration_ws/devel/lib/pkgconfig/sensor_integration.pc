@@ -1,0 +1,8 @@
+prefix=/home/sherly/Desktop/code/EECE5554/integration_ws/devel
+
+Name: sensor_integration
+Description: Description of sensor_integration
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

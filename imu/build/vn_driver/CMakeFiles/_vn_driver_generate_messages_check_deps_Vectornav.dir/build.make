@@ -54,7 +54,7 @@ CMAKE_BINARY_DIR = /home/sherly/Desktop/code/EECE5554/imu/build
 include vn_driver/CMakeFiles/_vn_driver_generate_messages_check_deps_Vectornav.dir/progress.make
 
 vn_driver/CMakeFiles/_vn_driver_generate_messages_check_deps_Vectornav:
-	cd /home/sherly/Desktop/code/EECE5554/imu/build/vn_driver && ../catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py vn_driver /home/sherly/Desktop/code/EECE5554/imu/src/vn_driver/msg/Vectornav.msg geometry_msgs/Quaternion:sensor_msgs/Imu:sensor_msgs/MagneticField:geometry_msgs/Vector3:std_msgs/Header
+	cd /home/sherly/Desktop/code/EECE5554/imu/build/vn_driver && ../catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py vn_driver /home/sherly/Desktop/code/EECE5554/imu/src/vn_driver/msg/Vectornav.msg std_msgs/Header:geometry_msgs/Vector3:sensor_msgs/Imu:sensor_msgs/MagneticField:geometry_msgs/Quaternion
 
 _vn_driver_generate_messages_check_deps_Vectornav: vn_driver/CMakeFiles/_vn_driver_generate_messages_check_deps_Vectornav
 _vn_driver_generate_messages_check_deps_Vectornav: vn_driver/CMakeFiles/_vn_driver_generate_messages_check_deps_Vectornav.dir/build.make

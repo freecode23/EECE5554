@@ -13,4 +13,4 @@ export PKG_CONFIG_PATH="/home/sherly/Desktop/code/EECE5554/imu/devel/lib/pkgconf
 export PWD='/home/sherly/Desktop/code/EECE5554/imu/build'
 export PYTHONPATH="/home/sherly/Desktop/code/EECE5554/imu/devel/lib/python3/dist-packages:$PYTHONPATH"
 export ROSLISP_PACKAGE_DIRECTORIES="/home/sherly/Desktop/code/EECE5554/imu/devel/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
-export ROS_PACKAGE_PATH="/home/sherly/Desktop/code/EECE5554/imu/src:$ROS_PACKAGE_PATH"
+export ROS_PACKAGE_PATH="/home/sherly/Desktop/code/EECE5554/imu/src://home/sherly/Desktop/code/EECE5554/imu/src:$ROS_PACKAGE_PATH"
