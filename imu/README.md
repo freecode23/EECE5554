@@ -68,6 +68,8 @@ cd data/
 rosbag record -O dead_reckoning_circle/dead_reckoning_circle.bag /imu
 ```
 
+rosbag record -O dead_reckoning_circle/dead_reckoning_circle.bag /imu
+
 Step 5: Exit the publisher node and the record program.
 
 Step 6: To save bag file as csv file, cd into the `analysis` directory, change the filename for the csv file,

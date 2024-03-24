@@ -1,6 +1,6 @@
 <launch>
     <!-- GPS Driver Arguments -->
-    <arg name="gps_port" default="/dev/ttyUSB0"/>
+    <arg name="gps_port" default="/dev/pts/8"/>
     <arg name="gps_filename" default="dead_reckoning_gps"/>
 
     <!-- IMU Driver Arguments -->

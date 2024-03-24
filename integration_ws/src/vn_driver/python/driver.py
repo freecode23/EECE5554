@@ -106,7 +106,7 @@ def parseVNYMR(vnymrStr: str, vectorNavMsg: Vectornav) -> Vectornav:
     vectorNavMsg.imu.orientation = Quaternion(*quaternion)
     # print(f"\nroll={roll}, pitch={pitch}, yaw={yaw}")
     # print("quarternion=", quaternion)
-
+# 
     # - angular velocity (rad/s)
     vectorNavMsg.imu.angular_velocity = Vector3(x=gyro_x, y=gyro_y, z=gyro_z)
 
@@ -167,6 +167,7 @@ if __name__ == '__main__':
             while not rospy.is_shutdown():
                 # 5.1 Read the message from port
                 vnymrStr = serialPort.readline().decode('ascii').strip()
+                print("vnymrStr", vnymrStr)
                 if not isVNYMRinString(vnymrStr):
                     continue
 

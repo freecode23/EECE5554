@@ -26,8 +26,8 @@ STATIONARY_RTK = f"Stationary{RTK}"
 WALK_RTK = f"walking{RTK}"
 
 # Replace with True if we want to first convert the bag file to csv.
-CONVERT_ROSBAG_TO_CSV = False
-scenario = STATIONARY
+CONVERT_ROSBAG_TO_CSV = True
+scenario = CHICAGO
 
 # Get the bag and csv filepath.
 if scenario == CHICAGO or scenario == WALK_RTK:
@@ -331,7 +331,7 @@ if __name__ == '__main__':
     # Convert bag file to csv.
     if CONVERT_ROSBAG_TO_CSV:
         convert_rosbag_to_csv(bag_filepaths, csv_filepaths)
-        exit(0)
+        # exit(0)
 
     # Plot
     if scenario == CHICAGO:

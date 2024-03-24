@@ -131,7 +131,9 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/home/sherly/Desktop/code/EECE5554/integration_ws/build/gtest/cmake_install.cmake")
+  include("/home/sherly/Desktop/code/EECE5554/integration_ws/build/gps_driver/cmake_install.cmake")
   include("/home/sherly/Desktop/code/EECE5554/integration_ws/build/sensor_integration/cmake_install.cmake")
+  include("/home/sherly/Desktop/code/EECE5554/integration_ws/build/vn_driver/cmake_install.cmake")
 
 endif()
 

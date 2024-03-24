@@ -1,2 +1,2 @@
-sensor_integration
+gps_driver:sensor_integration:vn_driver
 -DCATKIN_DEVEL_PREFIX=/home/sherly/Desktop/code/EECE5554/integration_ws/devel -DCMAKE_INSTALL_PREFIX=/home/sherly/Desktop/code/EECE5554/integration_ws/install -G Unix Makefiles

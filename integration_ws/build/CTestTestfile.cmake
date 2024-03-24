@@ -5,4 +5,6 @@
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.
 subdirs("gtest")
+subdirs("gps_driver")
 subdirs("sensor_integration")
+subdirs("vn_driver")
