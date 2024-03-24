@@ -55,7 +55,7 @@ roslaunch sensor_integration gps_imu_driver.launch gps_port:=/dev/ttyUSB1 gps_fi
 ```
 For town scenario:
 ```
-roslaunch sensor_integration gps_imu_driver.launch gps_port:=/dev/ttyUSB1 gps_filename:=town_gps imu_port:=/dev/ttyUSB0 imu_filename:=town_imu
+roslaunch sensor_integration gps_imu_driver.launch gps_port:=/dev/pts/4 gps_filename:=town_gps imu_port:=/dev/ttyUSB0 imu_filename:=town_imu
 ```
 
 Step 3. Execute the script file that will do ros echo and also record bag file for each topic:
