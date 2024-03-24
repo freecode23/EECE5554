@@ -49,8 +49,8 @@ ylabel('Magnetic Field Y (Gauss)'); % Y-axis label
 
 
 
-% Step3
-% a) Compute Heading using Yaw:
+% Step2
+% Step 2a) Compute heading (yaw angle) using calibrated magnetometer x and y.
 % the yaw angle typically represents the heading of a vehicle or object.
 % Load the town data bag file
 filename_town = '../data/town_imu/town_imu.bag';
@@ -72,28 +72,27 @@ corr_coords_town = transpose(corr_coords_town);
 corrected_town = transpose(scale_mat*rotation*corr_coords_town);
 
 % Calculate yaw angles before and after correction
-yaw_raw = atan2(-magtown_y, magtown_x);
-yaw_corrected = atan2(-corrected_town(:,2), corrected_town(:,1));
+heading_magnet_raw = atan2(-magtown_y, magtown_x);
+heading_magnet_corrected = atan2(-corrected_town(:,2), corrected_town(:,1));
 
 % Unwrap the Phase: MATLAB provides a function called unwrap which can be applied to 
 % the yaw angle data to mitigate the phase wrapping issue. 
 % It changes the jumps by adding multiples of +/- 360 degrees when it detects discontinuities greater than 180 degrees.
-yaw_raw_unwrapped = unwrap(yaw_raw);
-yaw_corrected_unwrapped = unwrap(yaw_corrected);
+heading_magnet_raw_unwrapped = rad2deg(unwrap(heading_magnet_raw));
+heading_magnet_corrected_unwrapped = rad2deg(unwrap(heading_magnet_corrected));
 
 % Plot the raw and corrected yaw angles for comparison
 figure;
-plot(rad2deg(yaw_raw_unwrapped), 'r', 'DisplayName', 'Raw Yaw');
+plot(heading_magnet_raw_unwrapped, 'r', 'DisplayName', 'Raw Yaw');
 hold on;
-plot(rad2deg(yaw_corrected_unwrapped), 'b', 'DisplayName', 'Corrected Yaw');
+plot(heading_magnet_corrected_unwrapped, 'b', 'DisplayName', 'Corrected Yaw');
 xlabel('Time (samples)');
 ylabel('Yaw Angle (degrees)');
 title('Comparison of Raw and Corrected Yaw Angles From Magnetometer');
 legend('show');
 grid on;
 
-% Step 2b) Get Gyro data and integrate to get the yaw angle.
-% Read the CSV file
+% Step 2b) Compute heading (yaw angle) using integrated gyro with initial unit of rad/s.
 % Read the CSV file
 filename = '../data/town_imu/town_imu.csv';
 imuData = readtable(filename);
@@ -109,19 +108,20 @@ time_seconds = time_stamps - time_stamps(1);
 gyro_z = imuData.gyro_z;
 
 % Integrate the yaw rate (gyro_z) to get the yaw angle
-yaw_angle = cumtrapz(time_seconds, gyro_z);
+heading_gyro = cumtrapz(time_seconds, gyro_z);
 
 % You can unwrap the yaw angle if needed
-yaw_angle_unwrapped = unwrap(yaw_angle);
+heading_gyro_unwrapped = unwrap(heading_gyro);
 
 % Convert yaw angle to degrees if necessary
-yaw_angle_degrees = rad2deg(yaw_angle_unwrapped);
+heading_gyro_degrees = rad2deg(heading_gyro_unwrapped);
 
 % Plot the integrated yaw angle
 figure;
-plot(time_seconds, yaw_angle_degrees);
+plot(time_seconds, heading_gyro_degrees);
 xlabel('Time (s)');
 ylabel('Yaw Angle (degrees)');
 title('Integrated Yaw Angle from Gyro');
 grid on;
 
+% Step 2C: Complementary Filter.
