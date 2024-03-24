@@ -49,7 +49,8 @@ ylabel('Magnetic Field Y (Gauss)'); % Y-axis label
 
 
 
-% Compute Heading using Yaw:
+% Step3
+% a) Compute Heading using Yaw:
 % the yaw angle typically represents the heading of a vehicle or object.
 % Load the town data bag file
 filename_town = '../data/town_imu/town_imu.bag';
@@ -71,8 +72,8 @@ corr_coords_town = transpose(corr_coords_town);
 corrected_town = transpose(scale_mat*rotation*corr_coords_town);
 
 % Calculate yaw angles before and after correction
-yaw_raw = atan2(magtown_y, magtown_x);
-yaw_corrected = atan2(corrected_town(:,2), corrected_town(:,1));
+yaw_raw = atan2(-magtown_y, magtown_x);
+yaw_corrected = atan2(-corrected_town(:,2), corrected_town(:,1));
 
 % Unwrap the Phase: MATLAB provides a function called unwrap which can be applied to 
 % the yaw angle data to mitigate the phase wrapping issue. 
@@ -87,7 +88,40 @@ hold on;
 plot(rad2deg(yaw_corrected_unwrapped), 'b', 'DisplayName', 'Corrected Yaw');
 xlabel('Time (samples)');
 ylabel('Yaw Angle (degrees)');
-title('Comparison of Raw and Corrected Yaw Angles (Unwrapped)');
+title('Comparison of Raw and Corrected Yaw Angles From Magnetometer');
 legend('show');
+grid on;
+
+% Step 2b) Get Gyro data and integrate to get the yaw angle.
+% Read the CSV file
+% Read the CSV file
+filename = '../data/town_imu/town_imu.csv';
+imuData = readtable(filename);
+
+% Extract the timestamp and gyro data
+time_stamps = imuData.stamp;  % Extract the timestamp (already in seconds)
+
+% Convert timestamps to elapsed time in seconds
+% The first stamp is subtracted to start from t=0
+time_seconds = time_stamps - time_stamps(1);
+
+% Select the z-axis gyro data, assuming this corresponds to the yaw rate
+gyro_z = imuData.gyro_z;
+
+% Integrate the yaw rate (gyro_z) to get the yaw angle
+yaw_angle = cumtrapz(time_seconds, gyro_z);
+
+% You can unwrap the yaw angle if needed
+yaw_angle_unwrapped = unwrap(yaw_angle);
+
+% Convert yaw angle to degrees if necessary
+yaw_angle_degrees = rad2deg(yaw_angle_unwrapped);
+
+% Plot the integrated yaw angle
+figure;
+plot(time_seconds, yaw_angle_degrees);
+xlabel('Time (s)');
+ylabel('Yaw Angle (degrees)');
+title('Integrated Yaw Angle from Gyro');
 grid on;
 
