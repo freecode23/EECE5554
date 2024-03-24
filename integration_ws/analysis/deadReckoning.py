@@ -13,7 +13,7 @@ from scipy.integrate import cumulative_trapezoid
 CIRCLE_IMU = "circle_imu"
 TOWN_IMU = "town_imu"
 
-SCENARIO = CIRCLE_IMU
+SCENARIO = TOWN_IMU
 # 2) Convert to csv:
 # Set this to false after we add corrected  magnetometer.
 # So that we don't overwrite from original rosbag.

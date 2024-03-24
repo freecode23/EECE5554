@@ -4,7 +4,7 @@
 shape = 'circle';
 
 % Use sprintf to dynamically create the file path
-filename = sprintf('../data/dead_reckoning_%s/dead_reckoning_%s.csv', shape, shape);
+filename = sprintf('../data/%s_imu/%s_imu.csv', shape, shape);
 
 
 % Read the entire magnetometer data from the CSV file without selecting specific columns
@@ -25,7 +25,7 @@ magData.mag_y_corr = xCorrected(:, 2);
 magData.mag_z_corr = xCorrected(:, 3);
 
 % Save the updated table to a new CSV file
-newFilename = sprintf('../data/dead_reckoning_%s/dead_reckoning_%s.csv', shape, shape);
+newFilename = sprintf('../data/%s/dead_reckoning_%s.csv', shape, shape);
 writetable(magData, newFilename);
 
 % Plot the original data and corrected.

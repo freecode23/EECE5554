@@ -16,7 +16,7 @@ TOWN = f"town_gps"
 
 # Replace with True if we want to first convert the bag file to csv.
 CONVERT_ROSBAG_TO_CSV = True
-scenario = CIRCLE
+scenario = TOWN
 
 # Get the bag and csv filepath.
 filename = scenario

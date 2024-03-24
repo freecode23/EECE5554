@@ -199,6 +199,7 @@ if __name__ == '__main__':
         with open(txtFilepath, 'a') as file:  # Open file in append mode
             while not rospy.is_shutdown():
                 # 4.1 Read the message from port
+                # print("test=", serialPort.readline())
                 gpggaStr = serialPort.readline().decode('ascii').strip()
                 if not isGPGGAinString(gpggaStr):
                     continue

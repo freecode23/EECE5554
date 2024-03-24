@@ -115,6 +115,7 @@ def parseVNYMR(vnymrStr: str, vectorNavMsg: Vectornav) -> Vectornav:
 
     # 2. Mag Field
     vectorNavMsg.mag_field.magnetic_field = Vector3(x=mag_x, y=mag_y, z=mag_z)
+    print(vectorNavMsg)
 
     return vectorNavMsg
 
@@ -171,7 +172,7 @@ if __name__ == '__main__':
             while not rospy.is_shutdown():
                 # 5.1 Read the message from port
                 vnymrStr = serialPort.readline().decode('ascii').strip()
-                print("vnymrStr", vnymrStr)
+                # print("vnymrStr", vnymrStr)
                 if not isVNYMRinString(vnymrStr):
                     continue
 
