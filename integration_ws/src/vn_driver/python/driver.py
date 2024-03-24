@@ -106,7 +106,7 @@ def parseVNYMR(vnymrStr: str, vectorNavMsg: Vectornav) -> Vectornav:
     vectorNavMsg.imu.orientation = Quaternion(*quaternion)
     # print(f"\nroll={roll}, pitch={pitch}, yaw={yaw}")
     # print("quarternion=", quaternion)
-# 
+
     # - angular velocity (rad/s)
     vectorNavMsg.imu.angular_velocity = Vector3(x=gyro_x, y=gyro_y, z=gyro_z)
 
@@ -153,6 +153,10 @@ if __name__ == '__main__':
     # 3. Prepare the directory to save the real result of vnymr string from IMU sensor.
     txtFilename = rospy.get_param('~filename', 'imu_capture')
     txtFilepath = createOutputFilepath(txtFilename)
+    
+    # Check if the file exists and delete it if it does
+    if os.path.isfile(txtFilepath):
+        os.remove(txtFilepath)
 
     # 4. Initialize the ROS message object.
     vectorNavMsg = Vectornav()

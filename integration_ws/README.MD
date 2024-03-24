@@ -49,13 +49,13 @@ source devel/setup.bash
 ```
 
 Step 2. roslaunch the gps and imu also from the`integration_ws` dir.
-For circle scenario
+For circle scenario:
 ```
-roslaunch sensor_integration gps_imu_driver.launch gps_port:=/dev/pts/8 gps_filename:=circle_gps imu_port:=/dev/ttyUSB0 imu_filename:=circle_imu
+roslaunch sensor_integration gps_imu_driver.launch gps_port:=/dev/ttyUSB1 gps_filename:=circle_gps imu_port:=/dev/ttyUSB0 imu_filename:=circle_imu
 ```
 For town scenario:
 ```
-roslaunch sensor_integration gps_imu_driver.launch gps_port:=/dev/pts/8 gps_filename:=town_gps imu_port:=/dev/ttyUSB0 imu_filename:=town_imu
+roslaunch sensor_integration gps_imu_driver.launch gps_port:=/dev/ttyUSB1 gps_filename:=town_gps imu_port:=/dev/ttyUSB0 imu_filename:=town_imu
 ```
 
 Step 3. Execute the script file that will do ros echo and also record bag file for each topic:

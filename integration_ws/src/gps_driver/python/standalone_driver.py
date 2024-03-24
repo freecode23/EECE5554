@@ -160,8 +160,10 @@ def parseGPGGA(gpggaStr: str, customGPSmsg: Customgps) -> Customgps:
     customGPSmsg.letter = utmVals[3]
     customGPSmsg.hdop = hdop
     customGPSmsg.gpgga_read = gpggaStr
-    customGPSmsg.header.stamp.secs = currentTime[0]
-    customGPSmsg.header.stamp.nsecs = currentTime[1]
+    customGPSmsg.header.stamp = rospy.Time.now()        
+
+    # customGPSmsg.header.stamp.secs = currentTime[0]
+    # customGPSmsg.header.stamp.nsecs = currentTime[1]
     return customGPSmsg
 
 if __name__ == '__main__':
@@ -183,11 +185,14 @@ if __name__ == '__main__':
     # 2. Prepare the directory to save the real result of GPGGA string from GPS puck.
     txtFilename = rospy.get_param('~filename', 'fileA')
     txtFilepath = createOutputFilepath(txtFilename)
+    if os.path.isfile(txtFilepath):
+        os.remove(txtFilepath)
 
     # 3. Initialize the ROS message object.
     customGPSmsg = Customgps()
     customGPSmsg.header.frame_id = "GPS1_Frame"
     customGPSmsg.header.seq = 0
+    # 1711242770
 
     # 4. Publish at 10Mhz.
     try:
