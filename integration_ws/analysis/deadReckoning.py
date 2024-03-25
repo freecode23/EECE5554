@@ -9,14 +9,12 @@ from numpy import pi
 from scipy import signal
 from scipy.integrate import cumulative_trapezoid
 
-
-
 # SELECT: 
 # 1) Scenario:
-CIRCLE_IMU = "circle_imu"
-TOWN_IMU = "town_imu"
+CIRCLE = "circle"
+TOWN = "town"
 
-SCENARIO = TOWN_IMU
+SCENARIO = TOWN
 # 2) Convert to csv:
 # Set this to false after we add corrected  magnetometer.
 # So that we don't overwrite from original rosbag.
@@ -36,12 +34,14 @@ FIGSIZE = (18, 12)
 DATA_DIR = "../data"
 PLOT_DIR = f"{DATA_DIR}/plots/{SCENARIO}"
 
-filename = SCENARIO
-bag_filepath = f'{DATA_DIR}/{SCENARIO}/{filename}.bag'
-bag_filepaths = [bag_filepath]
+imu_filename = SCENARIO + "_imu"
+gps_filename = SCENARIO + "_gps"
+imu_bag_filepath = f'{DATA_DIR}/{SCENARIO}/{imu_filename}.bag'
+bag_filepaths = [imu_bag_filepath]
 
-csv_filepath = f'{DATA_DIR}/{SCENARIO}/{filename}.csv'
-csv_filepaths = [csv_filepath]
+imu_csv_filepath = f'{DATA_DIR}/{SCENARIO}/{imu_filename}.csv'
+gps_csv_filepath = f'{DATA_DIR}/{SCENARIO}/{gps_filename}.csv'
+csv_filepaths = [imu_csv_filepath, gps_csv_filepath]
 colors = {'x': 'blue', 'y': 'green', 'z': 'red'}
 
 class VNYMR:
@@ -240,99 +240,100 @@ def apply_complementary_filter(data, alpha):
     return data
 
 # Define the filter application function
-def plot_filter(data):
+def plot_filtered_heading(imu_data):
     # Low-pass filter requirements
     low_order = 1
     low_cutoff = 0.01  # desired cutoff frequency of the filter, Hz
     low_fs = 40
 
-    # Apply the low-pass filter to the magnetometer data
-    data['heading_magnet_low_filtered'] = butter_lowpass_filter(data['heading_magnet'], low_cutoff, low_fs, low_order)
+    # Apply the low-pass filter to the magnetometer imu_data
+    imu_data['heading_magnet_low_filtered'] = butter_lowpass_filter(imu_data['heading_magnet'], low_cutoff, low_fs, low_order)
 
     # Plotting for verification
-    plt.figure(figsize=(15, 7))
-    plt.plot(data['stamp'].values, data['heading_magnet'].values, label='Gyro Heading', color='blue', linewidth=1)
-    plt.plot(data['stamp'].values, data['heading_magnet_low_filtered'].values, label='Low-pass Magnet Heading', color='red', linewidth=1)
+    # plt.figure(figsize=(15, 7))
+    # plt.plot(imu_data['stamp'].values, imu_data['heading_magnet'].values, label='Gyro Heading', color='blue', linewidth=1)
+    # plt.plot(imu_data['stamp'].values, imu_data['heading_magnet_low_filtered'].values, label='Low-pass Magnet Heading', color='red', linewidth=1)
     
-    plt.title('Magnet Heading: Unfiltered vs Filtered')
-    plt.xlabel('Time Stamp')
-    plt.ylabel('Heading (degrees)')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # plt.title('Magnet Heading: Unfiltered vs Filtered')
+    # plt.xlabel('Time Stamp')
+    # plt.ylabel('Heading (degrees)')
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
 
     # High-pass filter requirements
     high_order = 1
     high_cutoff = 0.0001  # desired cutoff frequency of the filter, Hz
     high_fs = 40
 
-    # Apply the high-pass filter to the magnetometer data
-    data['heading_gyro_high_filtered'] = butter_highpass_filter(data['heading_gyro'], high_cutoff, high_fs, high_order)
+    # Apply the high-pass filter to the magnetometer imu_data
+    imu_data['heading_gyro_high_filtered'] = butter_highpass_filter(imu_data['heading_gyro'], high_cutoff, high_fs, high_order)
 
     # Plotting for verification
-    plt.figure(figsize=(15, 7))
-    plt.plot(data['stamp'].values, data['heading_gyro'].values, label='Gyro Heading', color='blue', linewidth=1)
-    plt.plot(data['stamp'].values, data['heading_gyro_high_filtered'].values, label='High-pass Filtered Gyro Heading', color='red', linewidth=1)
+    # plt.figure(figsize=(15, 7))
+    # plt.plot(imu_data['stamp'].values, imu_data['heading_gyro'].values, label='Gyro Heading', color='blue', linewidth=1)
+    # plt.plot(imu_data['stamp'].values, imu_data['heading_gyro_high_filtered'].values, label='High-pass Filtered Gyro Heading', color='red', linewidth=1)
     
-    plt.title('Gyro Heading: Unfiltered vs Filtered')
-    plt.xlabel('Time Stamp')
-    plt.ylabel('Heading (degrees)')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # plt.title('Gyro Heading: Unfiltered vs Filtered')
+    # plt.xlabel('Time Stamp')
+    # plt.ylabel('Heading (degrees)')
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
 
     # Save the DataFrame including the new filtered columns to a CSV file
-    filename = '../data/town_imu/town_imu_filtered.csv'
-    data.to_csv(filename, index=False)
+    imu_data.to_csv(imu_csv_filepath, index=False)
 
-    # Use the function on your data
+    # Use the function on your imu_data
     alpha = 0.5  # Example value, adjust based on your system and tests
-    data = apply_complementary_filter(data, alpha)
+    imu_data = apply_complementary_filter(imu_data, alpha)
 
-    # Get the IMU data.
-    # Unwrap the complementary and IMU yaw data.
-    data['heading_complementary'] = np.unwrap(np.radians(data['heading_complementary']))
-    data['yaw_unwrapped'] = np.unwrap(np.radians(data['yaw']))
+    # Get the IMU imu_data.
+    # Unwrap the complementary and IMU yaw imu_data.
+    imu_data['heading_complementary'] = np.unwrap(np.radians(imu_data['heading_complementary']))
+    imu_data['yaw_unwrapped'] = np.unwrap(np.radians(imu_data['yaw']))
 
     # Convert back to degrees for plotting.
-    data['heading_complementary'] *= np.degrees(1)
-    data['yaw_unwrapped'] *= np.degrees(1)
+    imu_data['heading_complementary'] *= np.degrees(1)
+    imu_data['yaw_unwrapped'] *= np.degrees(1)
 
     # Plot the results
     plt.figure(figsize=(15, 7))
-    plt.plot(data['stamp'].values, data['heading_gyro_high_filtered'].values, label='High-pass Filtered Gyro Heading', color='red', linewidth=1)
-    plt.plot(data['stamp'].values, data['heading_magnet_low_filtered'].values, label='Low-pass Filtered Magnet Heading', color='green', linewidth=1)
-    plt.plot(data['stamp'].values, data['heading_complementary'].values, label='Complementary Filtered Heading', color='purple', linewidth=1)
-    plt.plot(data['stamp'].values, data['yaw_unwrapped'].values, label='IMU yaw', color='blue', linewidth=1)
+    plt.plot(imu_data['stamp'].values, imu_data['heading_gyro_high_filtered'].values, label='High-pass Filtered Gyro Heading', color='red', linewidth=1)
+    plt.plot(imu_data['stamp'].values, imu_data['heading_magnet_low_filtered'].values, label='Low-pass Filtered Magnet Heading', color='green', linewidth=1)
+    plt.plot(imu_data['stamp'].values, imu_data['heading_complementary'].values, label='Complementary Filtered Heading', color='purple', linewidth=1)
+    plt.plot(imu_data['stamp'].values, imu_data['yaw_unwrapped'].values, label='IMU yaw', color='blue', linewidth=1)
 
     plt.title('Gyro and Magnetometer Heading: High-pass vs Low-pass vs Complementary Filter')
     plt.xlabel('Time Stamp')
     plt.ylabel('Heading (degrees)')
     plt.legend()
     plt.grid(True)
-    plt.show()
+    
+    plot_path = os.path.join(PLOT_DIR, f'plot_3_filtered_heading.png')
+    plt.savefig(plot_path)
 
 
 
 # Question: How to correct velocity? 
 # First correct accel data?
-def correct_drift(data, stationary_period=(0, 10), fs=40):
+def correct_drift(imu_data, stationary_period=(0, 10), fs=40):
     """
-    Corrects the drift in acceleration data by applying a high pass filter and
+    Corrects the drift in acceleration imu_data by applying a high pass filter and
     zero-offset correction based on a stationary period.
 
     Args:
-        data (DataFrame): The data containing the acceleration and timestamps.
+        imu_data (DataFrame): The imu_data containing the acceleration and timestamps.
         stationary_period (tuple): The start and end time in seconds where the device is stationary.
         fs (float): Sampling frequency in Hz.
 
     Returns:
         DataFrame: The corrected DataFrame.
     """
-    corrected_data = data.copy()
+    corrected_data = imu_data.copy()
     
     for axis in ['x', 'y', 'z']:
-        accel_data = data[f'accel_{axis}'].to_numpy()
+        accel_data =imu_data[f'accel_{axis}'].to_numpy()
         
         # Zero-offset correction based on stationary period
         offset = np.mean(accel_data[stationary_period[0]*fs:stationary_period[1]*fs])
@@ -349,19 +350,19 @@ def correct_drift(data, stationary_period=(0, 10), fs=40):
     return corrected_data
 
 
-def integrate(data):
+def integrate_accel_twice(imu_data):
     """
-    Integrate acceleration data to get velocity and displacement using cumulative_trapezoid.
+    Integrate acceleration imu_data to get velocity and displacement using cumulative_trapezoid.
     """
-    time = data['elapsed_time'].to_numpy()
+    time = imu_data['elapsed_time'].to_numpy()
     dt = np.diff(time)  # Time intervals between measurements
 
-    # Initialize dictionaries to store velocity and displacement data
+    # Initialize dictionaries to store velocity and displacement imu_data
     velocity = {'x': np.zeros_like(time), 'y': np.zeros_like(time), 'z': np.zeros_like(time)}
     displacement = {'x': np.zeros_like(time), 'y': np.zeros_like(time), 'z': np.zeros_like(time)}
 
     for axis in ['x', 'y', 'z']:
-        accel_data = data[f'accel_{axis}'].to_numpy()
+        accel_data = imu_data[f'accel_{axis}'].to_numpy()
 
         # Integrate acceleration to get velocity
         velocity[axis] = cumulative_trapezoid(accel_data, time, initial=0)
@@ -371,24 +372,24 @@ def integrate(data):
 
     return velocity, displacement
 
-def plot_accel_velocity_displacement(data):
+def plot_accel_velocity_displacement_imu(imu_data):
     """
     Plot Acceleration, Velocity, and Displacement against time for each axis in different figures.
     """
-    data = correct_drift(data)
+    imu_data = correct_drift(imu_data)
 
-    velocity, displacement = integrate(data)
-    time = data['elapsed_time'].to_numpy()
+    velocity, displacement = integrate_accel_twice(imu_data)
+    time = imu_data['elapsed_time'].to_numpy()
 
     
-    # Plotting data
-    for quantity, quantity_data in zip(['Acceleration', 'Velocity', 'Displacement'], [data, velocity, displacement]):
+    # Plotting imu_data
+    for quantity, quantity_data in zip(['Acceleration', 'Velocity', 'Displacement'], [imu_data, velocity, displacement]):
         fig = plt.figure(figsize=FIGSIZE)
         fig.patch.set_facecolor('#f0f0f0')  # Set the face color for the figure here
 
         for i, axis in enumerate(['x', 'y', 'z'], 1):
             if quantity == 'Acceleration':
-                y_data = data[f'accel_{axis}'].dropna().to_numpy()
+                y_data = imu_data[f'accel_{axis}'].dropna().to_numpy()
             else:
                 y_data = quantity_data[axis]
             plt.subplot(3, 1, i)
@@ -400,8 +401,11 @@ def plot_accel_velocity_displacement(data):
             plt.grid(True, color='white')
         
         plt.subplots_adjust(hspace=0.5)
-        plot_path = os.path.join(PLOT_DIR, f'{quantity.lower()}.png')
+        plot_path = os.path.join(PLOT_DIR, f'imu_{quantity.lower()}.png')
         plt.savefig(plot_path)
+
+
+
 
 if __name__ == '__main__':
     if not os.path.exists(PLOT_DIR):
@@ -412,12 +416,13 @@ if __name__ == '__main__':
         convert_rosbag_to_csv(bag_filepaths, csv_filepaths)
 
     # Load data from csv and plot
-    data = pd.read_csv(csv_filepaths[0])
+    imu_data = pd.read_csv(csv_filepaths[0])
+    gps_data = pd.read_csv(csv_filepaths[1])
 
 
-    plot_filter(data)
+    plot_filtered_heading(imu_data)
 
-    plot_accel_velocity_displacement(data)
+    plot_accel_velocity_displacement_imu(imu_data)
 
 
 

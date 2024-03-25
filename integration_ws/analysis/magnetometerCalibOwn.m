@@ -2,9 +2,10 @@
 % Select a ROS bag file and topic
 shape = 'circle';
 addpath('~/Documents/MATLAB');
+plot_path = '../data/plots/town/'
 
 % Use sprintf to dynamically create the file path
-filename = sprintf('../data/%s_imu/%s_imu.bag', shape, shape);
+filename = sprintf('../data/%s/%s_imu.bag', shape, shape);
 bag_select = rosbag(filename); % load the bag file
 bSel = select(bag_select, 'Topic', '/imu'); % select the topic associated with IMU data
 
@@ -12,6 +13,7 @@ bSel = select(bag_select, 'Topic', '/imu'); % select the topic associated with I
 msg_struct = readMessages(bSel, 'DataFormat', 'struct');
 disp(fieldnames(msg_struct{1}.MagField))
 
+% Step 1. Get parameters of calibration (soft and hard iron correction)
 % Extracting time circles
 sec = cellfun(@(m) double(m.Header.Stamp.Sec), msg_struct); % extract seconds from the header stamp
 nsec = cellfun(@(m) double(m.Header.Stamp.Nsec), msg_struct); % extract nanoseconds from the header stamp
@@ -47,14 +49,17 @@ legend('Before Correction', 'After Correction'); % legend of the plot
 xlabel('Magnetic Field X (Gauss)'); % X-axis label
 ylabel('Magnetic Field Y (Gauss)'); % Y-axis label
 
+% Save the plot
+full_path = fullfile(plot_path, 'magnet_before_after_correction_circle.png');
+saveas(gcf, full_path);
 
 
 % Step2
 % Step 2a) Compute heading (yaw angle) using calibrated magnetometer x and y.
 % the yaw angle typically represents the heading of a vehicle or object.
 % Load the town data bag file
-filename_town = '../data/town_imu/town_imu.bag';
-bag_select_town = rosbag(filename_town); % load the bag file
+bag_filename_town = '../data/town/town_imu.bag';
+bag_select_town = rosbag(bag_filename_town); % load the bag file
 bSel_town = select(bag_select_town, 'Topic', '/imu'); % select the topic associated with IMU data
 
 % Read messages from the selected bag file and topic
@@ -71,6 +76,26 @@ corr_coords_town = [corr_x_town, corr_y_town];
 corr_coords_town = transpose(corr_coords_town);
 corrected_town = transpose(scale_mat*rotation*corr_coords_town);
 
+% Plot original and corrected magnetic field data
+figure;
+scatter(magtown_x, magtown_y, 'r*'); hold on;  % Original data in red
+scatter(corrected_town(:,1), corrected_town(:,2), 'b*');  % Corrected data in blue
+legend('Before Correction', 'After Correction');
+title('Magnetic Field Data: Before and After Correction');
+xlabel('Magnetic Field X (Gauss)');
+ylabel('Magnetic Field Y (Gauss)');
+grid on;
+
+% Define filename for saving
+filename = 'plot_0_magnet_before_after_correction_town.png';
+
+% Concatenate the path and filename to create the full file path
+full_path = fullfile(plot_path, filename);
+
+% Save the plot
+saveas(gcf, full_path);
+
+% Step 2b) Compute headings using magnetometer data and correct them using the calibration parameters.
 % Calculate yaw angles before and after correction
 heading_magnet_raw = atan2(-magtown_y, magtown_x);
 heading_magnet_corrected = atan2(-corrected_town(:,2), corrected_town(:,1));
@@ -82,7 +107,15 @@ heading_magnet_raw_unwrapped = rad2deg(unwrap(heading_magnet_raw));
 heading_magnet = rad2deg(unwrap(heading_magnet_corrected));
 
 % Plot the raw and corrected yaw angles for comparison
-figure;
+figWidthInches = 12;
+figHeightInches = 4;
+
+% Convert size to pixels (assuming 96 DPI)
+figWidthPixels = figWidthInches * 96;
+figHeightPixels = figHeightInches * 96;
+
+% Create a figure with the desired size
+figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
 plot(heading_magnet_raw_unwrapped, 'r', 'DisplayName', 'Raw Yaw');
 hold on;
 plot(heading_magnet, 'b', 'DisplayName', 'Corrected Yaw');
@@ -92,10 +125,14 @@ title('Comparison of Raw and Corrected Yaw Angles From Magnetometer');
 legend('show');
 grid on;
 
-% Step 2b) Compute heading (yaw angle) using integrated gyro with initial unit of rad/s.
+% Save the plot
+full_path = fullfile(plot_path, 'plot_1_magnet_heading.png');
+saveas(gcf, full_path);
+
+% Step 2c) Compute heading (yaw angle) using integrated gyro with initial unit of rad/s.
 % Read the CSV file
-filename = '../data/town_imu/town_imu.csv';
-imuData = readtable(filename);
+csv_filename_town = '../data/town/town_imu.csv';
+imuData = readtable(csv_filename_town);
 
 % Extract the timestamp and gyro data
 time_stamps = imuData.stamp;  % Extract the timestamp (already in seconds)
@@ -117,14 +154,26 @@ heading_gyro_unwrapped = unwrap(heading_gyro);
 heading_gyro = rad2deg(heading_gyro_unwrapped);
 
 % Plot the integrated yaw angle
-figure;
+figWidthInches = 12;
+figHeightInches = 4;
+
+% Convert size to pixels (assuming 96 DPI)
+figWidthPixels = figWidthInches * 96;
+figHeightPixels = figHeightInches * 96;
+
+% Create a figure with the desired size
+figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
 plot(time_seconds, heading_gyro);
 xlabel('Time (s)');
 ylabel('Yaw Angle (degrees)');
 title('Integrated Yaw Angle from Gyro');
 grid on;
 
-% Step 2C: Save the magnetometer heading and gyro heading to csv to further compute complementary filter in python.
+% Save the plot
+full_path = fullfile(plot_path, 'plot_2_gyro_heading.png');
+saveas(gcf, full_path);
+
+% Step 2d) Save the magnetometer heading and gyro heading to csv to further compute complementary filter in python.
 
 % Assuming imuData already contains your original data from 'town_imu.csv'
 % and you have computed heading_magnet and heading_gyro
@@ -134,11 +183,64 @@ imuData.heading_magnet = heading_magnet;
 imuData.heading_gyro = heading_gyro;
 
 % Define the filename (same as original)
-filename = '../data/town_imu/town_imu.csv';
 
 % Write the updated table back to the CSV, overwriting the original file
-writetable(imuData, filename);
+writetable(imuData, csv_filename_town);
 
 % Display a confirmation message
-disp(['Updated data saved back to: ', filename]);
+disp(['Updated data saved back to: ', csv_filename_town]);
+
+% Step 3) Compute velocity from GPS data.
+csv_filename_town_gps = '../data/town/town_gps.csv';
+
+% Load GPS data from CSV
+gps_data = readtable(csv_filename_town_gps);
+
+% Calculate time differences
+time_diffs = diff(gps_data.stamp);
+
+% Pre-allocate velocity array
+velocity = zeros(height(gps_data)-1, 1);
+
+% Loop through GPS data to calculate displacements and velocity
+for i = 1:(height(gps_data)-1)
+    % Calculate displacement using the Haversine formula
+    % Earth radius in meters.
+    R = 6371000; 
+    delta_lat = deg2rad(gps_data.latitude(i+1) - gps_data.latitude(i));
+    delta_lon = deg2rad(gps_data.longitude(i+1) - gps_data.longitude(i));
+    a = sin(delta_lat/2)^2 + cos(deg2rad(gps_data.latitude(i))) * cos(deg2rad(gps_data.latitude(i+1))) * sin(delta_lon/2)^2;
+    c = 2 * atan2(sqrt(a), sqrt(1-a));
+    d = R * c;
+    
+    % Calculate velocity (displacement over time)
+    velocity(i) = d / time_diffs(i);
+end
+
+% Plot the velocity
+% Desired figure size in inches
+figWidthInches = 12;
+figHeightInches = 4;
+
+% Convert size to pixels (assuming 96 DPI)
+figWidthPixels = figWidthInches * 96;
+figHeightPixels = figHeightInches * 96;
+
+% Create a figure with the desired size
+figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
+
+plot(gps_data.stamp(2:end), velocity, 'LineWidth', 1);
+title('Velocity computed from GPS data');
+xlabel('Time (s)');
+ylabel('Velocity (m/s)');
+grid on;
+
+% Save the plot
+full_path = fullfile(plot_path, 'plot_5_gps_velocity.png');
+saveas(gcf, full_path);
+
+
+
+
+
 
