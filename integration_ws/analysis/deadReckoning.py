@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from numpy import pi
 # from scipy.signal import butter, sosfilt, filtfilt
 from scipy import signal
+from scipy.integrate import cumulative_trapezoid
+
 
 
 # SELECT: 
@@ -154,10 +156,6 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
     print("finish convert rosbag to csv")
 
 
-# Lab5: Dead Reckoning plots:
-# 1) Fig1: Plot the N vs. E components of magnetic field and apply calibration to your dataset. 
-# Plot two sub-figs before and after calibration.
-# This is in MATLAB
 def plot_magnetic_components(data):
     """
     Plots the North vs. East components of the magnetic field from the dataset before calibration.
@@ -214,6 +212,7 @@ def butter_highpass_filter(data, cutoff, fs, order=5):
     y = signal.filtfilt(b, a, data)
     return y
 
+
 def apply_complementary_filter(data, alpha):
     """
     Apply a complementary filter to combine the high-pass filtered gyro data
@@ -244,8 +243,8 @@ def apply_complementary_filter(data, alpha):
 def plot_filter(data):
     # Low-pass filter requirements
     low_order = 1
-    low_cutoff = 0.001  # desired cutoff frequency of the filter, Hz
-    low_fs = 4
+    low_cutoff = 0.01  # desired cutoff frequency of the filter, Hz
+    low_fs = 40
 
     # Apply the low-pass filter to the magnetometer data
     data['heading_magnet_low_filtered'] = butter_lowpass_filter(data['heading_magnet'], low_cutoff, low_fs, low_order)
@@ -264,8 +263,8 @@ def plot_filter(data):
 
     # High-pass filter requirements
     high_order = 1
-    high_cutoff = 0.000001  # desired cutoff frequency of the filter, Hz
-    high_fs = 4
+    high_cutoff = 0.0001  # desired cutoff frequency of the filter, Hz
+    high_fs = 40
 
     # Apply the high-pass filter to the magnetometer data
     data['heading_gyro_high_filtered'] = butter_highpass_filter(data['heading_gyro'], high_cutoff, high_fs, high_order)
@@ -315,6 +314,95 @@ def plot_filter(data):
 
 
 
+# Question: How to correct velocity? 
+# First correct accel data?
+def correct_drift(data, stationary_period=(0, 10), fs=40):
+    """
+    Corrects the drift in acceleration data by applying a high pass filter and
+    zero-offset correction based on a stationary period.
+
+    Args:
+        data (DataFrame): The data containing the acceleration and timestamps.
+        stationary_period (tuple): The start and end time in seconds where the device is stationary.
+        fs (float): Sampling frequency in Hz.
+
+    Returns:
+        DataFrame: The corrected DataFrame.
+    """
+    corrected_data = data.copy()
+    
+    for axis in ['x', 'y', 'z']:
+        accel_data = data[f'accel_{axis}'].to_numpy()
+        
+        # Zero-offset correction based on stationary period
+        offset = np.mean(accel_data[stationary_period[0]*fs:stationary_period[1]*fs])
+        corrected_data[f'accel_{axis}_corrected'] = accel_data - offset
+        
+        # Apply high-pass filter
+        corrected_data[f'accel_{axis}_corrected'] = butter_highpass_filter(
+            corrected_data[f'accel_{axis}_corrected'], 
+            0.000001,  # Cutoff frequency
+            fs, 
+            1, # order
+        )
+
+    return corrected_data
+
+
+def integrate(data):
+    """
+    Integrate acceleration data to get velocity and displacement using cumulative_trapezoid.
+    """
+    time = data['elapsed_time'].to_numpy()
+    dt = np.diff(time)  # Time intervals between measurements
+
+    # Initialize dictionaries to store velocity and displacement data
+    velocity = {'x': np.zeros_like(time), 'y': np.zeros_like(time), 'z': np.zeros_like(time)}
+    displacement = {'x': np.zeros_like(time), 'y': np.zeros_like(time), 'z': np.zeros_like(time)}
+
+    for axis in ['x', 'y', 'z']:
+        accel_data = data[f'accel_{axis}'].to_numpy()
+
+        # Integrate acceleration to get velocity
+        velocity[axis] = cumulative_trapezoid(accel_data, time, initial=0)
+
+        # Integrate velocity to get displacement
+        displacement[axis] = cumulative_trapezoid(velocity[axis], time, initial=0)
+
+    return velocity, displacement
+
+def plot_accel_velocity_displacement(data):
+    """
+    Plot Acceleration, Velocity, and Displacement against time for each axis in different figures.
+    """
+    data = correct_drift(data)
+
+    velocity, displacement = integrate(data)
+    time = data['elapsed_time'].to_numpy()
+
+    
+    # Plotting data
+    for quantity, quantity_data in zip(['Acceleration', 'Velocity', 'Displacement'], [data, velocity, displacement]):
+        fig = plt.figure(figsize=FIGSIZE)
+        fig.patch.set_facecolor('#f0f0f0')  # Set the face color for the figure here
+
+        for i, axis in enumerate(['x', 'y', 'z'], 1):
+            if quantity == 'Acceleration':
+                y_data = data[f'accel_{axis}'].dropna().to_numpy()
+            else:
+                y_data = quantity_data[axis]
+            plt.subplot(3, 1, i)
+            plt.plot(time, y_data, label=f'{quantity} {axis.upper()}', color=colors[axis])
+            plt.xlabel('Time (s)')
+            plt.ylabel(f'{quantity} ({"m/s^2" if quantity == "Acceleration" else "m/s" if quantity == "Velocity" else "m"})')
+            plt.title(f'{quantity} {axis.upper()}')
+            plt.legend(loc='upper right')
+            plt.grid(True, color='white')
+        
+        plt.subplots_adjust(hspace=0.5)
+        plot_path = os.path.join(PLOT_DIR, f'{quantity.lower()}.png')
+        plt.savefig(plot_path)
+
 if __name__ == '__main__':
     if not os.path.exists(PLOT_DIR):
         os.makedirs(PLOT_DIR)
@@ -325,8 +413,11 @@ if __name__ == '__main__':
 
     # Load data from csv and plot
     data = pd.read_csv(csv_filepaths[0])
+
+
     plot_filter(data)
 
+    plot_accel_velocity_displacement(data)
 
 
 
