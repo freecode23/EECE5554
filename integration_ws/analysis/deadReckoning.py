@@ -3,9 +3,10 @@ import csv
 import pandas as pd
 import os
 import numpy as np
-from numpy import pi
 import matplotlib.pyplot as plt
-from scipy.integrate import cumulative_trapezoid
+from numpy import pi
+# from scipy.signal import butter, sosfilt, filtfilt
+from scipy import signal
 
 
 # SELECT: 
@@ -17,7 +18,7 @@ SCENARIO = TOWN_IMU
 # 2) Convert to csv:
 # Set this to false after we add corrected  magnetometer.
 # So that we don't overwrite from original rosbag.
-CONVERT_ROSBAG_TO_CSV = True
+CONVERT_ROSBAG_TO_CSV = False
 # 3) Compute oadev again:
 COMPUTE_OADEV = False
 if CONVERT_ROSBAG_TO_CSV == True:
@@ -153,7 +154,7 @@ def convert_rosbag_to_csv(bag_filepaths, csv_filepaths):
     print("finish convert rosbag to csv")
 
 
-# Lab4: Dead Reckoning plots:
+# Lab5: Dead Reckoning plots:
 # 1) Fig1: Plot the N vs. E components of magnetic field and apply calibration to your dataset. 
 # Plot two sub-figs before and after calibration.
 # This is in MATLAB
@@ -193,133 +194,126 @@ def plot_magnetic_components(data):
     plot_path = os.path.join(PLOT_DIR, 'mag_field_before_calib.png')
     plt.savefig(plot_path)
 
+# Low-pass filter design function
+def butter_lowpass_filter(raw_data, cutoff_freq, sampl_freq, filt_order):
+    nyq_freq = sampl_freq / 2 #set the Nyquist frequency (important to avoid aliasing)
+    sos = signal.butter(N = filt_order, Wn = cutoff_freq / nyq_freq, btype='lowpass', analog=False, output='sos')
+    filtered_data = signal.sosfilt(sos, raw_data)
+    return filtered_data
 
+# High-pass filter design function
+def butter_highpass(cutoff, fs, order=5):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = signal.butter(order, normal_cutoff, btype='high', analog=False)
+    return b, a
 
+# High-pass filter application function
+def butter_highpass_filter(data, cutoff, fs, order=5):
+    b, a = butter_highpass(cutoff, fs, order=order)
+    y = signal.filtfilt(b, a, data)
+    return y
 
-# 2) Fig 2-4: Plot rotational rate and rotation (integrate once from gyro and plot magnetometer heading by calculating atan(X/Y)) vs. time. 
-# Plot all three axes on three subplots per fig.
-def plot_rotation_and_rotational_rate(data):
+def apply_complementary_filter(data, alpha):
     """
-    Process IMU data to plot and save:
-    1) Rotational rates for GyroX, GyroY, GyroZ.
-    2) Rotation calculated by integrating gyroscopic data over time.
-    3) Magnetometer heading calculated from atan2(magY/magX).
+    Apply a complementary filter to combine the high-pass filtered gyro data
+    and low-pass filtered magnetometer data.
+
+    Args:
+    data: The DataFrame with your heading data.
+    alpha: The filter constant used for blending the two signals. It's a value
+           between 0 and 1, where 0 means only the magnetometer data is used,
+           and 1 means only the gyro data is used.
+
+    Returns:
+    Updated DataFrame with the complementary filtered heading.
+    """
+    # alpha is typically close to 1. You will have to tune it based on your application's needs.
+    # For example, alpha might be 0.98, which means the filter trusts the gyro 98% and the magnetometer 2%.
     
-    Parameters:
-    - data: DataFrame containing time, gyroscopic data (GyroX, GyroY, GyroZ),
-            and magnetometer data (magX, magY) after calibration.
-    - plot_dir: Directory path where the plots will be saved.
-    """
-    # Plot 1: Rotational rates for GyroX, GyroY, GyroZ
-    fig, axs = plt.subplots(3, 1, figsize=FIGSIZE)
-    fig.patch.set_facecolor('#f0f0f0')
-
-    for i, axis in enumerate(['x', 'y', 'z']):
-        
-        elapsed_time_array = data['elapsed_time'].to_numpy()  # Convert to numpy array
-        gyro_data_array = data[f'gyro_{axis}'].to_numpy()  # Convert to numpy array
-        axs[i].set_facecolor('#f0f0f0')
-        axs[i].grid(True, color='white')
-        axs[i].plot(elapsed_time_array, gyro_data_array, label=f'Gyro {axis} Rotational Rate', color=colors[axis])
-        axs[i].set_xlabel('Time (s)')
-        axs[i].set_ylabel('Rate (rad/s)')
-        axs[i].legend()
-
-    plt.tight_layout()
-    plt.savefig(os.path.join(PLOT_DIR, 'rotational_rates_gyro.png'))
-    plt.close(fig)
-
-    # Plot 2: Rotation calculated by integrating gyroscopic data over time
-    # Integrate gyroscopic data to get rotation for each axis
-    fig, axs = plt.subplots(3, 1, figsize=FIGSIZE)
-    gyro_integrated = {}
-    for i, axis in enumerate(['x', 'y', 'z']):
-        # Integrate gyros data to get rotation for each axis.
-        gyro_integrated[axis] = cumulative_trapezoid(data[f'gyro_{axis}'].to_numpy(), 
-                                                 data['elapsed_time'].to_numpy(), 
-                                                 initial=0) * (180 / pi)
-        axs[i].set_facecolor('#f0f0f0')
-        axs[i].grid(True, color='white')
-        axs[i].plot(data['elapsed_time'].to_numpy(), 
-                    gyro_integrated[axis], 
-                    label=f'Gyro {axis} Integrated Rotation',
-                    color=colors[axis]
-                    )
-        axs[i].set_xlabel('Time (s)')
-        axs[i].set_ylabel('Rotation (degrees)')
-        axs[i].legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(PLOT_DIR, 'rotation_gyro_integrated.png'))
-    plt.close(fig)
-
-    # Plot 3: Magnetometer heading
-    data['MagHeading'] = np.degrees(np.arctan2(data['mag_y_corr'], data['mag_x_corr']))
-    fig, ax = plt.subplots(figsize=FIGSIZE)
-    ax.set_facecolor('#f0f0f0')
-    ax.grid(True, color='white')
-
-    ax.plot(data['elapsed_time'].to_numpy(), 
-            data['MagHeading'].to_numpy(), 
-            label='Magnetometer Heading')
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel('Rotation (degrees)')
-    ax.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(PLOT_DIR, 'rotation_magnetometer_heading.png'))
-    plt.close(fig)
-
-
-# 3) Fig 5-7: Plot acceleration, velocity (integrate once), and displacement (integrate twice) vs. time as three subplots on all three axes (Fig. 5-7)
-def integrate(data):
-    """
-    Integrate acceleration data to get velocity and displacement using cumulative_trapezoid.
-    """
-    time = data['elapsed_time'].to_numpy()
-    dt = np.diff(time)  # Time intervals between measurements
-
-    # Initialize dictionaries to store velocity and displacement data
-    velocity = {'x': np.zeros_like(time), 'y': np.zeros_like(time), 'z': np.zeros_like(time)}
-    displacement = {'x': np.zeros_like(time), 'y': np.zeros_like(time), 'z': np.zeros_like(time)}
-
-    for axis in ['x', 'y', 'z']:
-        accel_data = data[f'accel_{axis}'].to_numpy()
-
-        # Integrate acceleration to get velocity
-        velocity[axis] = cumulative_trapezoid(accel_data, time, initial=0)
-
-        # Integrate velocity to get displacement
-        displacement[axis] = cumulative_trapezoid(velocity[axis], time, initial=0)
-
-    return velocity, displacement
-
-def plot_accel_velocity_displacement(data):
-    """
-    Plot Acceleration, Velocity, and Displacement against time for each axis in different figures.
-    """
-    velocity, displacement = integrate(data)
-    time = data['elapsed_time'].to_numpy()
+    # The complementary filter equation is:
+    # heading_complementary = alpha * heading_gyro + (1 - alpha) * heading_magnet
+    data['heading_complementary'] = alpha * data['heading_gyro_high_filtered'] + (1 - alpha) * data['heading_magnet_low_filtered']
     
-    # Plotting data
-    for quantity, quantity_data in zip(['Acceleration', 'Velocity', 'Displacement'], [data, velocity, displacement]):
-        fig = plt.figure(figsize=FIGSIZE)
-        fig.patch.set_facecolor('#f0f0f0')  # Set the face color for the figure here
+    # You can also wrap the result between 0 and 360 degrees if needed
+    data['heading_complementary'] = np.mod(data['heading_complementary'], 360)
 
-        for i, axis in enumerate(['x', 'y', 'z'], 1):
-            if quantity == 'Acceleration':
-                y_data = data[f'accel_{axis}'].dropna().to_numpy()
-            else:
-                y_data = quantity_data[axis]
-            plt.subplot(3, 1, i)
-            plt.plot(time, y_data, label=f'{quantity} {axis.upper()}', color=colors[axis])
-            plt.xlabel('Time (s)')
-            plt.ylabel(f'{quantity} ({"m/s^2" if quantity == "Acceleration" else "m/s" if quantity == "Velocity" else "m"})')
-            plt.title(f'{quantity} {axis.upper()}')
-            plt.legend(loc='upper right')
-            plt.grid(True, color='white')
-        
-        plt.subplots_adjust(hspace=0.5)
-        plot_path = os.path.join(PLOT_DIR, f'{quantity.lower()}.png')
-        plt.savefig(plot_path)
+    return data
+
+# Define the filter application function
+def plot_filter(data):
+    # Low-pass filter requirements
+    low_order = 1
+    low_cutoff = 0.001  # desired cutoff frequency of the filter, Hz
+    low_fs = 4
+
+    # Apply the low-pass filter to the magnetometer data
+    data['heading_magnet_low_filtered'] = butter_lowpass_filter(data['heading_magnet'], low_cutoff, low_fs, low_order)
+
+    # Plotting for verification
+    plt.figure(figsize=(15, 7))
+    plt.plot(data['stamp'].values, data['heading_magnet'].values, label='Gyro Heading', color='blue', linewidth=1)
+    plt.plot(data['stamp'].values, data['heading_magnet_low_filtered'].values, label='Low-pass Magnet Heading', color='red', linewidth=1)
+    
+    plt.title('Magnet Heading: Unfiltered vs Filtered')
+    plt.xlabel('Time Stamp')
+    plt.ylabel('Heading (degrees)')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # High-pass filter requirements
+    high_order = 1
+    high_cutoff = 0.000001  # desired cutoff frequency of the filter, Hz
+    high_fs = 4
+
+    # Apply the high-pass filter to the magnetometer data
+    data['heading_gyro_high_filtered'] = butter_highpass_filter(data['heading_gyro'], high_cutoff, high_fs, high_order)
+
+    # Plotting for verification
+    plt.figure(figsize=(15, 7))
+    plt.plot(data['stamp'].values, data['heading_gyro'].values, label='Gyro Heading', color='blue', linewidth=1)
+    plt.plot(data['stamp'].values, data['heading_gyro_high_filtered'].values, label='High-pass Filtered Gyro Heading', color='red', linewidth=1)
+    
+    plt.title('Gyro Heading: Unfiltered vs Filtered')
+    plt.xlabel('Time Stamp')
+    plt.ylabel('Heading (degrees)')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # Save the DataFrame including the new filtered columns to a CSV file
+    filename = '../data/town_imu/town_imu_filtered.csv'
+    data.to_csv(filename, index=False)
+
+    # Use the function on your data
+    alpha = 0.5  # Example value, adjust based on your system and tests
+    data = apply_complementary_filter(data, alpha)
+
+    # Get the IMU data.
+    # Unwrap the complementary and IMU yaw data.
+    data['heading_complementary'] = np.unwrap(np.radians(data['heading_complementary']))
+    data['yaw_unwrapped'] = np.unwrap(np.radians(data['yaw']))
+
+    # Convert back to degrees for plotting.
+    data['heading_complementary'] *= np.degrees(1)
+    data['yaw_unwrapped'] *= np.degrees(1)
+
+    # Plot the results
+    plt.figure(figsize=(15, 7))
+    plt.plot(data['stamp'].values, data['heading_gyro_high_filtered'].values, label='High-pass Filtered Gyro Heading', color='red', linewidth=1)
+    plt.plot(data['stamp'].values, data['heading_magnet_low_filtered'].values, label='Low-pass Filtered Magnet Heading', color='green', linewidth=1)
+    plt.plot(data['stamp'].values, data['heading_complementary'].values, label='Complementary Filtered Heading', color='purple', linewidth=1)
+    plt.plot(data['stamp'].values, data['yaw_unwrapped'].values, label='IMU yaw', color='blue', linewidth=1)
+
+    plt.title('Gyro and Magnetometer Heading: High-pass vs Low-pass vs Complementary Filter')
+    plt.xlabel('Time Stamp')
+    plt.ylabel('Heading (degrees)')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
 
 if __name__ == '__main__':
     if not os.path.exists(PLOT_DIR):
@@ -331,17 +325,7 @@ if __name__ == '__main__':
 
     # Load data from csv and plot
     data = pd.read_csv(csv_filepaths[0])
-    plot_magnetic_components(data)
-
-    # Make sure to run the matlab manetometerCalib.py before running this.
-    # run : matlab -softwareopengl
-    # print("\n1. Plotting rotation and rotational rate")
-    # plot_rotation_and_rotational_rate(data)
-
-    # print("\n2. Plotting Acceleration, Velocity, Displacement")
-    # plot_accel_velocity_displacement(data)
-
-
+    plot_filter(data)
 
 
 

@@ -79,13 +79,13 @@ heading_magnet_corrected = atan2(-corrected_town(:,2), corrected_town(:,1));
 % the yaw angle data to mitigate the phase wrapping issue. 
 % It changes the jumps by adding multiples of +/- 360 degrees when it detects discontinuities greater than 180 degrees.
 heading_magnet_raw_unwrapped = rad2deg(unwrap(heading_magnet_raw));
-heading_magnet_corrected_unwrapped = rad2deg(unwrap(heading_magnet_corrected));
+heading_magnet = rad2deg(unwrap(heading_magnet_corrected));
 
 % Plot the raw and corrected yaw angles for comparison
 figure;
 plot(heading_magnet_raw_unwrapped, 'r', 'DisplayName', 'Raw Yaw');
 hold on;
-plot(heading_magnet_corrected_unwrapped, 'b', 'DisplayName', 'Corrected Yaw');
+plot(heading_magnet, 'b', 'DisplayName', 'Corrected Yaw');
 xlabel('Time (samples)');
 ylabel('Yaw Angle (degrees)');
 title('Comparison of Raw and Corrected Yaw Angles From Magnetometer');
@@ -114,14 +114,31 @@ heading_gyro = cumtrapz(time_seconds, gyro_z);
 heading_gyro_unwrapped = unwrap(heading_gyro);
 
 % Convert yaw angle to degrees if necessary
-heading_gyro_degrees = rad2deg(heading_gyro_unwrapped);
+heading_gyro = rad2deg(heading_gyro_unwrapped);
 
 % Plot the integrated yaw angle
 figure;
-plot(time_seconds, heading_gyro_degrees);
+plot(time_seconds, heading_gyro);
 xlabel('Time (s)');
 ylabel('Yaw Angle (degrees)');
 title('Integrated Yaw Angle from Gyro');
 grid on;
 
-% Step 2C: Complementary Filter.
+% Step 2C: Save the magnetometer heading and gyro heading to csv to further compute complementary filter in python.
+
+% Assuming imuData already contains your original data from 'town_imu.csv'
+% and you have computed heading_magnet and heading_gyro
+
+% Add the computed headings to the table
+imuData.heading_magnet = heading_magnet;
+imuData.heading_gyro = heading_gyro;
+
+% Define the filename (same as original)
+filename = '../data/town_imu/town_imu.csv';
+
+% Write the updated table back to the CSV, overwriting the original file
+writetable(imuData, filename);
+
+% Display a confirmation message
+disp(['Updated data saved back to: ', filename]);
+
