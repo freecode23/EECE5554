@@ -242,8 +242,8 @@ def apply_complementary_filter(data, alpha):
 # Define the filter application function
 def plot_filtered_heading(imu_data):
     # Low-pass filter requirements
-    low_order = 1
-    low_cutoff = 0.01  # desired cutoff frequency of the filter, Hz
+    low_order = 2
+    low_cutoff = 0.09  # desired cutoff frequency of the filter, Hz
     low_fs = 40
 
     # Apply the low-pass filter to the magnetometer imu_data
@@ -262,8 +262,8 @@ def plot_filtered_heading(imu_data):
     # plt.show()
 
     # High-pass filter requirements
-    high_order = 1
-    high_cutoff = 0.0001  # desired cutoff frequency of the filter, Hz
+    high_order = 2
+    high_cutoff = 0.00001  # desired cutoff frequency of the filter, Hz
     high_fs = 40
 
     # Apply the high-pass filter to the magnetometer imu_data
@@ -298,7 +298,7 @@ def plot_filtered_heading(imu_data):
     imu_data['yaw_unwrapped'] *= np.degrees(1)
 
     # Plot the results
-    plt.figure(figsize=(15, 7))
+    plt.figure(figsize=(20,16))
     plt.plot(imu_data['stamp'].values, imu_data['heading_gyro_high_filtered'].values, label='High-pass Filtered Gyro Heading', color='red', linewidth=1)
     plt.plot(imu_data['stamp'].values, imu_data['heading_magnet_low_filtered'].values, label='Low-pass Filtered Magnet Heading', color='green', linewidth=1)
     plt.plot(imu_data['stamp'].values, imu_data['heading_complementary'].values, label='Complementary Filtered Heading', color='purple', linewidth=1)

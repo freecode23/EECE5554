@@ -13,6 +13,14 @@ bSel = select(bag_select, 'Topic', '/imu'); % select the topic associated with I
 msg_struct = readMessages(bSel, 'DataFormat', 'struct');
 disp(fieldnames(msg_struct{1}.MagField))
 
+% Plot the raw and corrected yaw angles for comparison
+figWidthInches = 12; 
+figHeightInches = 4;
+
+% Convert size to pixels (assuming 96 DPI)
+figWidthPixels = figWidthInches * 96;
+figHeightPixels = figHeightInches * 96;
+
 % Step 1. Get parameters of calibration (soft and hard iron correction)
 % Extracting time circles
 sec = cellfun(@(m) double(m.Header.Stamp.Sec), msg_struct); % extract seconds from the header stamp
@@ -42,20 +50,8 @@ circle_ellipse = transpose(scale_mat*rotation*corr_coords); % apply soft-iron co
 % Fit a new ellipse to the corrected data
 new_ell = fit_ellipse(circle_ellipse(:,1), circle_ellipse(:,2)); % fit an ellipse to the corrected data
 
-% Plot the corrected data and the fitted ellipse
-scatter(circle_ellipse(:,1), circle_ellipse(:,2), 'b*'); % scatter plot of the corrected data
-title('Soft Iron and Hard Iron Correction'); % title of the plot
-legend('Before Correction', 'After Correction'); % legend of the plot
-xlabel('Magnetic Field X (Gauss)'); % X-axis label
-ylabel('Magnetic Field Y (Gauss)'); % Y-axis label
-
-% Save the plot
-full_path = fullfile(plot_path, 'magnet_before_after_correction_circle.png');
-saveas(gcf, full_path);
-
-
-% Step2
-% Step 2a) Compute heading (yaw angle) using calibrated magnetometer x and y.
+% Plot 0: Magnet Field before and after correction.
+% Compute heading (yaw angle) using calibrated magnetometer x and y.
 % the yaw angle typically represents the heading of a vehicle or object.
 % Load the town data bag file
 bag_filename_town = '../data/town/town_imu.bag';
@@ -95,7 +91,8 @@ full_path = fullfile(plot_path, filename);
 % Save the plot
 saveas(gcf, full_path);
 
-% Step 2b) Compute headings using magnetometer data and correct them using the calibration parameters.
+% Plot 1 Magnet Heading before after correction (Town)
+% Compute headings using magnetometer data and correct them using the calibration parameters.
 % Calculate yaw angles before and after correction
 heading_magnet_raw = atan2(-magtown_y, magtown_x);
 heading_magnet_corrected = atan2(-corrected_town(:,2), corrected_town(:,1));
@@ -106,13 +103,7 @@ heading_magnet_corrected = atan2(-corrected_town(:,2), corrected_town(:,1));
 heading_magnet_raw_unwrapped = rad2deg(unwrap(heading_magnet_raw));
 heading_magnet = rad2deg(unwrap(heading_magnet_corrected));
 
-% Plot the raw and corrected yaw angles for comparison
-figWidthInches = 12;
-figHeightInches = 4;
 
-% Convert size to pixels (assuming 96 DPI)
-figWidthPixels = figWidthInches * 96;
-figHeightPixels = figHeightInches * 96;
 
 % Create a figure with the desired size
 figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
@@ -129,20 +120,20 @@ grid on;
 full_path = fullfile(plot_path, 'plot_1_magnet_heading.png');
 saveas(gcf, full_path);
 
-% Step 2c) Compute heading (yaw angle) using integrated gyro with initial unit of rad/s.
+% Plot 2: Gyro heading (yaw angle) using integrated gyro with initial unit of rad/s.
 % Read the CSV file
-csv_filename_town = '../data/town/town_imu.csv';
-imuData = readtable(csv_filename_town);
+imu_csv_filepath = '../data/town/town_imu.csv';
+imu_data = readtable(imu_csv_filepath);
 
 % Extract the timestamp and gyro data
-time_stamps = imuData.stamp;  % Extract the timestamp (already in seconds)
+time_stamps = imu_data.stamp;  % Extract the timestamp (already in seconds)
 
 % Convert timestamps to elapsed time in seconds
 % The first stamp is subtracted to start from t=0
 time_seconds = time_stamps - time_stamps(1);
 
 % Select the z-axis gyro data, assuming this corresponds to the yaw rate
-gyro_z = imuData.gyro_z;
+gyro_z = imu_data.gyro_z;
 
 % Integrate the yaw rate (gyro_z) to get the yaw angle
 heading_gyro = cumtrapz(time_seconds, gyro_z);
@@ -154,13 +145,6 @@ heading_gyro_unwrapped = unwrap(heading_gyro);
 heading_gyro = rad2deg(heading_gyro_unwrapped);
 
 % Plot the integrated yaw angle
-figWidthInches = 12;
-figHeightInches = 4;
-
-% Convert size to pixels (assuming 96 DPI)
-figWidthPixels = figWidthInches * 96;
-figHeightPixels = figHeightInches * 96;
-
 % Create a figure with the desired size
 figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
 plot(time_seconds, heading_gyro);
@@ -173,28 +157,64 @@ grid on;
 full_path = fullfile(plot_path, 'plot_2_gyro_heading.png');
 saveas(gcf, full_path);
 
-% Step 2d) Save the magnetometer heading and gyro heading to csv to further compute complementary filter in python.
-
-% Assuming imuData already contains your original data from 'town_imu.csv'
+% Assuming imu_data already contains your original data from 'town_imu.csv'
 % and you have computed heading_magnet and heading_gyro
 
 % Add the computed headings to the table
-imuData.heading_magnet = heading_magnet;
-imuData.heading_gyro = heading_gyro;
-
-% Define the filename (same as original)
+imu_data.heading_magnet = heading_magnet;
+imu_data.heading_gyro = heading_gyro;
 
 % Write the updated table back to the CSV, overwriting the original file
-writetable(imuData, csv_filename_town);
+writetable(imu_data, imu_csv_filepath);
 
 % Display a confirmation message
-disp(['Updated data saved back to: ', csv_filename_town]);
+disp(['Updated data saved back to: ', imu_csv_filepath]);
 
-% Step 3) Compute velocity from GPS data.
-csv_filename_town_gps = '../data/town/town_gps.csv';
+% Plot 3) Filtered Heading.
+plot_filtered_heading(imu_data, imu_csv_filepath, plot_path);
+
+
+% Plot 4) Correct Accel data.
+% Calculate the mean acceleration over the entire dataset.
+mean_accel_x = mean(imu_data.accel_x);
+
+% Subtract the mean acceleration from the acceleration data to correct it.
+corrected_accel_x = imu_data.accel_x - mean_accel_x;
+
+% Now integrate the corrected acceleration to get the corrected velocity.
+corrected_velocity_x = cumtrapz(imu_data.stamp, corrected_accel_x);
+smooth_velocity_x = lowpass(corrected_velocity_x, 0.5, 40);
+
+% Plot the smoothed velocity x
+figure;
+hold on;
+plot(imu_data.stamp, smooth_velocity_x, 'b', 'LineWidth', 1);
+hold off;
+xlabel('Time (s)');
+ylabel('Velocity (m/s)');
+title('Corrected Velocity X from IMU Data');
+legend('corrected', 'Low-pass');
+
+grid on;
+
+% Optionally save the plot
+full_path = fullfile(plot_path, 'plot_4_corrected_velocity_x_imu.png');
+saveas(gcf, full_path);
+
+mean_accel_y = mean(imu_data.accel_y);
+
+% Subtract the mean acceleration from the acceleration data to correct it.
+corrected_accel_y = imu_data.accel_y - mean_accel_y;
+
+% Now integrate the corrected acceleration to get the corrected velocity.
+corrected_velocity_y = cumtrapz(imu_data.stamp, corrected_accel_y);
+smooth_velocity_y = lowpass(corrected_velocity_y, 0.5, 40);
+
+% Plot 5) Compute velocity from GPS data.
+imu_csv_filepath_gps = '../data/town/town_gps.csv';
 
 % Load GPS data from CSV
-gps_data = readtable(csv_filename_town_gps);
+gps_data = readtable(imu_csv_filepath_gps);
 
 % Calculate time differences
 time_diffs = diff(gps_data.stamp);
@@ -217,16 +237,8 @@ for i = 1:(height(gps_data)-1)
     velocity(i) = d / time_diffs(i);
 end
 
-% Plot the velocity
-% Desired figure size in inches
-figWidthInches = 12;
-figHeightInches = 4;
 
-% Convert size to pixels (assuming 96 DPI)
-figWidthPixels = figWidthInches * 96;
-figHeightPixels = figHeightInches * 96;
 
-% Create a figure with the desired size
 figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
 
 plot(gps_data.stamp(2:end), velocity, 'LineWidth', 1);
@@ -240,7 +252,101 @@ full_path = fullfile(plot_path, 'plot_5_gps_velocity.png');
 saveas(gcf, full_path);
 
 
+% Plot 6) Plot GPS position vs Position obtained from Dead-Reckoning.
 
 
+% Now integrate the smoothed velocity to get the displacement.
+% This integration will give us the trajectory in the x and y directions.
+displacement_x = cumtrapz(imu_data.stamp, smooth_velocity_x);
+displacement_y = cumtrapz(imu_data.stamp, smooth_velocity_y);
+
+% Plot the trajectory (displacement over time)
+figure;
+plot(displacement_x, displacement_y, 'r', 'LineWidth', 1);
+xlabel('Displacement in X (m)');
+ylabel('Displacement in Y (m)');
+title('2D Trajectory from IMU Data');
+legend('Trajectory');
+grid on;
+full_path = fullfile(plot_path, 'plot_6_trajectory_imu.png');
+saveas(gcf, full_path);
+
+% Functions
+
+function filtered_data = butter_lowpass_filter(data, cutoff, fs, order)
+    % Design a low-pass Butterworth filter in SOS format
+    [sos, g] = butter(order, cutoff / (fs / 2), 'low');
+    % Apply the SOS filter to the data using zero-phase filtering
+    filtered_data = filtfilt(sos, g, data);
+end
+
+function filtered_data = butter_highpass_filter(data, cutoff, fs, order)
+    % Design a high-pass butterworth filter
+    [b, a] = butter(order, cutoff/(fs/2), 'high');
+    % Apply the filter to the data using zero-phase filtering
+    filtered_data = filtfilt(b, a, data);
+end
+
+function imu_data = apply_complementary_filter(imu_data, alpha)
+    imu_data.heading_complementary = imu_data.heading_gyro_high_filtered * alpha + (1 - alpha) * imu_data.heading_magnet_low_filtered;
+end
+
+function plot_filtered_heading(imu_data, imu_csv_filepath, PLOT_DIR)
+    % Low-pass filter requirements
+    low_order = 1;
+    low_cutoff = 0.08;  % desired cutoff frequency of the filter, Hz
+    low_fs = 40;        % sampling frequency
+
+    % Apply the low-pass filter to the magnetometer data
+    imu_data.heading_magnet_low_filtered = butter_lowpass_filter(imu_data.heading_magnet, low_cutoff, low_fs, low_order);
+
+    % High-pass filter requirements
+    high_order = 1;
+    high_cutoff = 0.00001;  % desired cutoff frequency of the filter, Hz
+    high_fs = 40;          % sampling frequency
+
+    % Apply the high-pass filter to the gyro data
+    imu_data.heading_gyro_high_filtered = butter_highpass_filter(imu_data.heading_gyro, high_cutoff, high_fs, high_order);
+
+    % Use the complementary filter on your imu_data (adjust alpha as needed)
+    alpha = 0.5;  % Example value, adjust based on your system and tests
+    imu_data = apply_complementary_filter(imu_data, alpha);
+
+    % Unwrap the complementary and IMU yaw data and convert to degree
+    imu_data.heading_complementary = unwrap(deg2rad(imu_data.heading_complementary));
+    imu_data.heading_complementary = rad2deg(imu_data.heading_complementary);
+
+    imu_data.yaw_unwrapped = unwrap(deg2rad(imu_data.yaw));
+    imu_data.yaw_unwrapped = rad2deg(imu_data.yaw_unwrapped);
+
+    % Plot the results
+    % Plot the raw and corrected yaw angles for comparison
+    figWidthInches = 12;
+    figHeightInches = 4;
+
+    % Convert size to pixels (assuming 96 DPI)
+    figWidthPixels = figWidthInches * 96;
+    figHeightPixels = figHeightInches * 96;
+    figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
+    hold on;
+    plot(imu_data.stamp, imu_data.heading_gyro_high_filtered, 'r', 'LineWidth', 1);
+    plot(imu_data.stamp, imu_data.heading_magnet_low_filtered, 'g', 'LineWidth', 1);
+    plot(imu_data.stamp, imu_data.heading_complementary, 'm', 'LineWidth', 1);
+    plot(imu_data.stamp, imu_data.yaw_unwrapped, 'b', 'LineWidth', 1);
+    hold off;
+
+    title('Gyro and Magnetometer Heading: High-pass vs Low-pass vs Complementary Filter');
+    xlabel('Time Stamp');
+    ylabel('Heading (degrees)');
+    legend('High-pass Filtered Gyro Heading', 'Low-pass Filtered Magnet Heading', 'Complementary Filtered Heading', 'IMU yaw');
+    grid on;
+
+    % Save the plot
+    plot_filename = fullfile(PLOT_DIR, 'plot_3_filtered_heading.png');
+    saveas(gcf, plot_filename);
+
+    % Save the imu_data to a CSV file
+    writetable(imu_data, imu_csv_filepath);
 
 
+end
