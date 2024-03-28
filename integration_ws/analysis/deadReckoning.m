@@ -234,9 +234,15 @@ x_velocity_sensor = cumtrapz(imu_data.stamp, imu_data.accel_x)
 % Compute angular velocity of heading (gyro_z) * x_velocity_sensor and compare it to imu_data.accel_y from the sensor.
 angular_velocity_influence = imu_data.gyro_z .* x_velocity_sensor;
 figure;
-plot(imu_data.stamp, imu_data.accel_y, 'b', 'DisplayName', 'imu sensor acceleration-y');
+
+corrected_accel_y = butter_lowpass_filter(imu_data.accel_y, 0.8, 40, 1); % you might adjust the filter parameters as necessary
+% Subtract the bias from the y_accel data
+mean_bias_y = mean(corrected_accel_y);
+corrected_accel_y = corrected_accel_y - mean_bias_y;
+plot(imu_data.stamp, corrected_accel_y , 'r', 'DisplayName', 'imu sensor acceleration-y');
+
 hold on;
-plot(imu_data.stamp, angular_velocity_influence, 'r', 'DisplayName', 'angular velocity-z * imu velocity-x');
+plot(imu_data.stamp, angular_velocity_influence, 'b', 'DisplayName', 'angular velocity-z * imu velocity-x');
 
 hold off;
 xlabel('Time (s)');
