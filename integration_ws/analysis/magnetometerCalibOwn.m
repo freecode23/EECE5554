@@ -9,6 +9,8 @@ filename = sprintf('../data/%s/%s_imu.bag', shape, shape);
 bag_select = rosbag(filename); % load the bag file
 bSel = select(bag_select, 'Topic', '/imu'); % select the topic associated with IMU data
 
+set(0, 'DefaultFigureVisible', 'off')
+
 % Read messages from the selected bag file and topic
 msg_struct = readMessages(bSel, 'DataFormat', 'struct');
 disp(fieldnames(msg_struct{1}.MagField))
@@ -157,7 +159,7 @@ imu_velocity_x = cumtrapz(imu_data.stamp, corrected_accel_x);
 imu_velocity_x = lowpass(imu_velocity_x, 0.5, 40);
 
 % Plot the corrected velocity x
-figure;
+figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
 hold on;
 plot(imu_data.stamp, imu_velocity_x, 'b', 'LineWidth', 1);
 hold off;
@@ -166,7 +168,7 @@ ylabel('Velocity (m/s)');
 title('Corrected Velocity X from IMU Data');
 legend('corrected', 'Low-pass');
 grid on;
-full_path = fullfile(plot_path, 'plot_4_velocity_x_imu.png');
+full_path = fullfile(plot_path, 'plot_4_imu_velocity_x.png');
 saveas(gcf, full_path);
 
 
@@ -225,16 +227,16 @@ grid on;
 full_path = fullfile(plot_path, 'plot_6_0_imu_vs_gps_displacement.png');
 saveas(gcf, full_path);
 
-% Step 1: Comapare the product of integrated angular velocity and forward velocity from x_accel with y_accel
+% Step 1: Compare the product of integrated angular velocity and forward velocity from x_accel with y_accel
 % Integrate x_accel directly from imu data to get x_velocity_sensor.
-x_velocity_sensor = cumtrapz(imu_data.stamp,imu_data.accel_x)
+x_velocity_sensor = cumtrapz(imu_data.stamp, imu_data.accel_x)
 
 % Compute angular velocity of heading (gyro_z) * x_velocity_sensor and compare it to imu_data.accel_y from the sensor.
 angular_velocity_influence = imu_data.gyro_z .* x_velocity_sensor;
 figure;
-plot(imu_data.stamp, angular_velocity_influence, 'r', 'DisplayName', 'angular velocity z * forward velocity x');
+plot(imu_data.stamp, angular_velocity_influence/5, 'r', 'DisplayName', 'angular velocity-z * imu velocity-x');
 hold on;
-plot(imu_data.stamp, imu_data.accel_y, 'b', 'DisplayName', 'obseserved accel_y');
+plot(imu_data.stamp, imu_data.accel_y, 'b', 'DisplayName', 'imu sensor acceleration-y');
 
 hold off;
 xlabel('Time (s)');
@@ -245,21 +247,22 @@ grid on;
 full_path = fullfile(plot_path, 'plot_6_1_angular_velocity_effect.png');
 saveas(gcf, full_path);
 
-% Step 2: Correct the x' and y' (velocity components) based on the rotation
-% Calculate the mean acceleration over the entire dataset.
+% Step 2: Plot Trajectory
+
+% Get y velocity.
+% Intergrate accel to get velocity
 mean_accel_y = mean(imu_data.accel_y);
-
-% Subtract the mean acceleration from the acceleration data to correct it.
 corrected_accel_y = imu_data.accel_y - mean_accel_y;
-
-% Integrate the corrected acceleration to get the corrected velocity.
 imu_velocity_y = cumtrapz(imu_data.stamp, corrected_accel_y);
 imu_velocity_y = lowpass(imu_velocity_y, 0.5, 40);
+
+% get the heading angle in radian.
 heading_angle_radians = deg2rad(imu_data.heading_magnet);
+
 corrected_velocity_easting = cos(heading_angle_radians) .* imu_velocity_x - sin(heading_angle_radians) .* imu_velocity_y;
 corrected_velocity_northing = sin(heading_angle_radians) .* imu_velocity_x + cos(heading_angle_radians) .* imu_velocity_y;
 
-% Step 3: Integrate the corrected velocities to get the displacement
+% Integrate the corrected velocities to get the displacement
 displacement_easting = cumtrapz(imu_data.stamp, corrected_velocity_easting);
 displacement_northing = cumtrapz(imu_data.stamp, corrected_velocity_northing);
 
@@ -273,9 +276,6 @@ legend('Trajectory');
 grid on;
 full_path = fullfile(plot_path, 'plot_6_trajectory_imu.png');
 saveas(gcf, full_path);
-
-
-
 
 
 
