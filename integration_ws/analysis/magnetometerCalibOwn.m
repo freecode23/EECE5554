@@ -234,9 +234,9 @@ x_velocity_sensor = cumtrapz(imu_data.stamp, imu_data.accel_x)
 % Compute angular velocity of heading (gyro_z) * x_velocity_sensor and compare it to imu_data.accel_y from the sensor.
 angular_velocity_influence = imu_data.gyro_z .* x_velocity_sensor;
 figure;
-plot(imu_data.stamp, angular_velocity_influence/5, 'r', 'DisplayName', 'angular velocity-z * imu velocity-x');
-hold on;
 plot(imu_data.stamp, imu_data.accel_y, 'b', 'DisplayName', 'imu sensor acceleration-y');
+hold on;
+plot(imu_data.stamp, angular_velocity_influence/5, 'r', 'DisplayName', 'angular velocity-z * imu velocity-x');
 
 hold off;
 xlabel('Time (s)');
@@ -244,7 +244,7 @@ ylabel('Acceleration (m/s^2)');
 title('Comparison of Acceleration');
 legend('show');
 grid on;
-full_path = fullfile(plot_path, 'plot_6_1_angular_velocity_effect.png');
+full_path = fullfile(plot_path, 'plot_6_1_acceleration_y_comparison.png');
 saveas(gcf, full_path);
 
 % Step 2: Plot Trajectory
