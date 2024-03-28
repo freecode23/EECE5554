@@ -259,8 +259,8 @@ imu_velocity_y = lowpass(imu_velocity_y, 0.5, 40);
 % get the heading angle in radian.
 heading_angle_radians = deg2rad(imu_data.heading_magnet);
 
-corrected_velocity_easting = cos(heading_angle_radians) .* imu_velocity_x - sin(heading_angle_radians) .* imu_velocity_y;
-corrected_velocity_northing = sin(heading_angle_radians) .* imu_velocity_x + cos(heading_angle_radians) .* imu_velocity_y;
+corrected_velocity_northing = cos(heading_angle_radians) .* imu_velocity_x;
+corrected_velocity_easting = sin(heading_angle_radians) .* imu_velocity_x;
 
 % Integrate the corrected velocities to get the displacement
 displacement_easting = cumtrapz(imu_data.stamp, corrected_velocity_easting);
