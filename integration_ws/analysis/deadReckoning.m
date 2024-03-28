@@ -236,7 +236,7 @@ angular_velocity_influence = imu_data.gyro_z .* x_velocity_sensor;
 figure;
 plot(imu_data.stamp, imu_data.accel_y, 'b', 'DisplayName', 'imu sensor acceleration-y');
 hold on;
-plot(imu_data.stamp, angular_velocity_influence/5, 'r', 'DisplayName', 'angular velocity-z * imu velocity-x');
+plot(imu_data.stamp, angular_velocity_influence, 'r', 'DisplayName', 'angular velocity-z * imu velocity-x');
 
 hold off;
 xlabel('Time (s)');
@@ -248,14 +248,6 @@ full_path = fullfile(plot_path, 'plot_6_1_acceleration_y_comparison.png');
 saveas(gcf, full_path);
 
 % Step 2: Plot Trajectory
-
-% Get y velocity.
-% Intergrate accel to get velocity
-mean_accel_y = mean(imu_data.accel_y);
-corrected_accel_y = imu_data.accel_y - mean_accel_y;
-imu_velocity_y = cumtrapz(imu_data.stamp, corrected_accel_y);
-imu_velocity_y = lowpass(imu_velocity_y, 0.5, 40);
-
 % get the heading angle in radian.
 heading_angle_radians = deg2rad(imu_data.heading_magnet);
 
@@ -276,8 +268,6 @@ legend('Trajectory');
 grid on;
 full_path = fullfile(plot_path, 'plot_6_trajectory_imu.png');
 saveas(gcf, full_path);
-
-
 
 % Functions
 function filtered_data = butter_lowpass_filter(data, cutoff, fs, order)
