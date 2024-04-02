@@ -197,10 +197,6 @@ for k = 1:length(imu_velocity_x)
         imu_velocity_x(k) = 0; % Set negative velocities to zero
     end
 end
-<<<<<<< HEAD
-
-=======
->>>>>>> 1f157116b28cb980aea90bced5e121b09a46c0b6
 
 % Plot the corrected velocity x
 figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
@@ -309,8 +305,8 @@ corrected_velocity_easting = sin(heading_angle_radians) .* imu_velocity_x;
 displacement_easting = cumtrapz(imu_data.stamp, corrected_velocity_easting);
 displacement_northing = cumtrapz(imu_data.stamp, corrected_velocity_northing);
 
-imu_data.easting = displacement_easting
-imu_data.northing = displacement_northing
+imu_data.utm_easting = displacement_easting
+imu_data.utm_northing = displacement_northing
 writetable(imu_data, imu_csv_filepath);
 
 % Plot the trajectory

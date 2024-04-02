@@ -5,14 +5,16 @@ import plotly.graph_objects as go
 import os
 import numpy as np
 from plotly.subplots import make_subplots
+from scipy.spatial.distance import euclidean
+
 
 
 IMAGE_EXTENSION = "png"
 DATA_DIR = "../data"
 PLOT_DIR = f"{DATA_DIR}/plots"
 
-CIRCLE = f"circle_gps"
-TOWN = f"town_gps"
+CIRCLE = f"circle"
+TOWN = f"town"
 
 # Replace with True if we want to first convert the bag file to csv.
 CONVERT_ROSBAG_TO_CSV = True
@@ -20,11 +22,12 @@ scenario = TOWN
 
 # Get the bag and csv filepath.
 filename = scenario
-bag_filepath = f'{DATA_DIR}/{filename}/{filename}.bag'
+bag_filepath = f'{DATA_DIR}/{filename}/town_gps.bag'
 bag_filepaths = [bag_filepath]
 
-csv_filepath = f'{DATA_DIR}/{filename}/{filename}.csv'
-csv_filepaths = [csv_filepath]
+csv_filepath_gps = f'{DATA_DIR}/{filename}/town_gps.csv'
+csv_filepath_imu = f'{DATA_DIR}/{filename}/town_imu.csv'
+csv_filepaths = [csv_filepath_gps, csv_filepath_imu]
 
 
 # Function to convert a ROS bag to CSV.
@@ -75,150 +78,142 @@ def getNormalizedNorthingEasting(df: pd.DataFrame):
 
     return df, first_point_easting, first_point_northing
 
-# Function to calculate distance from a point to a line
-# This is to compute the RMSE for walking scenario.
-def point_to_line_dist(point, slope, intercept):
-    px, py = point
 
-    # Calculate distance using the formula for perpendicular distance from a point to a line:
-    # |Ax + By + C| / sqrt(A^2 + B^2) where line is Ax + By + C = 0
-    # For y = mx + b
-    # mx -y + b = 0
-    # Ax + (-B) y + C =0
-    # A = m, B = -1, and C = intercept (b)
-    dist = abs(slope * -px + py - intercept) / (np.sqrt(slope**2 + 1))
-    return dist
-
-
-def calculate_2DRMS_from_perpendicular_distances(perpendicular_distances):
-    # Calculate the square of the distances
-    distances_sq = perpendicular_distances**2
-    
-    # Calculate the mean of the squared distances
-    mean_distances_sq = np.mean(distances_sq)
-    
-    # Calculate the DRMS (Distance Root Mean Square)
-    drms = np.sqrt(mean_distances_sq)
-    
-    # 2DRMS is two times the DRMS
-    drms_2 = drms * 2
-    return drms_2
-
-# Function to calculate DRMS
-def calculate_2DRMS(df: pd.DataFrame):
-    # Square of differences
-    df['easting_diff_sq'] = df['easting_diff']**2
-    df['northing_diff_sq'] = df['northing_diff']**2
-    
-    # Mean of squared differences
-    mean_easting_diff_sq = df['easting_diff_sq'].mean()
-    mean_northing_diff_sq = df['northing_diff_sq'].mean()
-    
-    # DRMS is the square root of the mean of the sum of squared differences
-    drms = np.sqrt(mean_easting_diff_sq + mean_northing_diff_sq)
-    return drms * 2
-
-def plotNorthingEasting(csv_filepaths: list, plot_filepath: str, scenario: str, isLineOfBestFit: bool):
+def plotNorthingEasting(plot_filepath: str, scenario: str):
     # Initialize figure
     fig = make_subplots()
-
-    # Initialize text for the text box
     textbox_content = ""
+    df_gps = pd.read_csv(csv_filepath_gps)
+    df_imu = pd.read_csv(csv_filepath_imu)
 
-    # Loop over each CSV file path
-    for i, csv_file in enumerate(csv_filepaths):
-        # 1. Load data
-        df = pd.read_csv(csv_file)
+    # Get normalized northing and easting columns for gps
+    df_gps, first_point_easting, first_point_northing = getNormalizedNorthingEasting(df_gps)
+    df_imu, imu_first_point_easting, imu_first_point_northing = getNormalizedNorthingEasting(df_imu)
 
-        # Get normalized northing and easting columns.
-        df, first_point_easting, first_point_northing = getNormalizedNorthingEasting(df)
+    # Iterate through GPS timestamps and find the closest IMU timestamps within the window
+    combined_data_list = []
 
-        # Calculate the centroids of the normalized data
-        centroid_easting = df['easting_normalized'].mean()
-        centroid_northing = df['northing_normalized'].mean()
+    time_window = pd.Timedelta(seconds=0.25)
+    df_gps['timestamp'] = pd.to_datetime(df_gps['stamp'], unit='s')
+    df_imu['timestamp'] = pd.to_datetime(df_imu['stamp'], unit='s')
+    for index, gps_row in df_gps.iterrows():
+        # Find the index of the closest IMU timestamp to the current GPS timestamp
+        closest_index = (df_imu['timestamp'] - gps_row['timestamp']).abs().idxmin()
+        closest_imu_row = df_imu.iloc[closest_index]
+        time_diff = abs(closest_imu_row['timestamp'] - gps_row['timestamp'])
 
-        # Subtract centroid from each data point
-        df['easting_diff'] = df['easting_normalized'] - centroid_easting
-        df['northing_diff'] = df['northing_normalized'] - centroid_northing
+        # Check if the closest timestamp is within the time window
+        if time_diff <= time_window:
+            # Combine the data for this timestamp
+            combined_data = {
+                'gps_timestamp': gps_row['timestamp'],
+                'gps_northing': gps_row['northing_normalized'],
+                'gps_easting': gps_row['easting_normalized'],
+                'imu_timestamp': closest_imu_row['timestamp'],
+                'imu_northing': closest_imu_row['northing_normalized'],  # Assuming this column exists
+                'imu_easting': closest_imu_row['easting_normalized']      # Assuming this column exists
+            }
+            # Append the combined data to the synced DataFrame
+            combined_data_list.append(combined_data)
 
-        scenario = scenario.capitalize()
+    synced_data = pd.DataFrame(combined_data_list)
+    print(synced_data)
 
-        # Get the base file name without the scenario name.
-        openOrOc = os.path.splitext(os.path.basename(csv_file))[0].replace(scenario, "")
-        df['openOrOc'] = openOrOc
+    # Create filename
+    scenario = scenario.capitalize()
+    suffix = os.path.splitext(os.path.basename(csv_filepath_gps))[0].replace(scenario, "")
 
-        # Create textbox content.
-        zone = df['zone'][0]
-        letter = df['letter'][0]
-        textbox_content += f"\
-        {openOrOc}<br>\
-        Zone:{zone}<br>\
-        Letter:{letter}<br>\
-        Offset: <br>\
-        East: {(first_point_easting/1000.0):.2f} km<br>\
-        North:{(first_point_northing/1000.0):.2f} km<br>"
+    # Create textbox content.
+    zone = df_gps['zone'][0]
+    letter = df_gps['letter'][0]
+    textbox_content += f"\
+    {suffix}<br>\
+    Zone:{zone}<br>\
+    Letter:{letter}<br>\
+    Offset: <br>\
+    East: {(first_point_easting/1000.0):.2f} km<br>\
+    North:{(first_point_northing/1000.0):.2f} km<br>"
 
-        # Plot scatter points.
-        fig.add_trace(go.Scatter(
-            x=df['easting_normalized'], y=df['northing_normalized'], 
-            mode='markers', name=openOrOc))
-        
-        # Calculate error metrics.
-        drms2_value = 0
-        title=f"{scenario} Northing vs Easting (Differences from Centroid)"
-        xaxis_title="Easting Difference from Centroid (m)"
-        yaxis_title="Northing Difference from Centroid (m)"
-        if isLineOfBestFit:
-            # Compute and overlay line of best fit.
-            m, b = np.polyfit(df['easting_normalized'], df['northing_normalized'], 1)
-        
-            # Plot.
-            fig.add_trace(go.Scatter(
-                x=df['easting_normalized'], 
-                y=m*df['easting_normalized'] + b, 
-                mode='lines', 
-                name=f'{openOrOc} Best Fit'))
-            
-            # Calculate perpendicular distances from each data point to the line of best fit.
-            perpendicular_distances = df.apply(
-                lambda row: point_to_line_dist((row['easting_normalized'], row['northing_normalized']), m, b), axis=1)
+    # Plot GPS data points
+    fig.add_trace(go.Scatter(
+        x=synced_data['gps_easting'], 
+        y=synced_data['gps_northing'], 
+        mode='markers', 
+        name='GPS Data', 
+        marker=dict(color='rgba(255, 0, 0, .8)')
+    ))
 
-            # Error for walking: Calculate RMSE of these perpendicular distances
-            drms2_value = calculate_2DRMS_from_perpendicular_distances(perpendicular_distances)
-            title=f"{scenario} Northing vs Easting"
-            xaxis_title="Easting (m)"
-            yaxis_title="Northing (m)"
+    # Plot IMU data points from the synchronized DataFrame
+    scaling_factor = 1.8
+    fig.add_trace(go.Scatter(
+        x=synced_data['imu_easting'] * scaling_factor, 
+        y=synced_data['imu_northing'] * scaling_factor, 
+        mode='markers', 
+        name='IMU Data', 
+        marker=dict(color='rgba(0, 0, 255, .8)')
+    ))
 
-
-        else:
-            # Error for stationary: Calculate 2DRMS:
-            drms2_value = calculate_2DRMS(df)
-    
-        print(f"The 2DRMS value for {scenario} {openOrOc} is: {drms2_value}")
-        
     # Customize the plot
+    title=f"{scenario} Northing vs Easting Comparison"
+    xaxis_title="Easting (m)"
+    yaxis_title="Northing (m)"
     fig.update_layout(
         title=title,
         xaxis_title=xaxis_title,
         yaxis_title=yaxis_title,
-        plot_bgcolor="white",
-        annotations=[
-            dict(
-                text=textbox_content, # Textbox content
-                align='left',
-                showarrow=False,
-                xref='paper',
-                yref='paper',
-                x=1.05,
-                y=1.05, # Position above the plot
-                bordercolor='black',
-                borderwidth=1
-            )
-        ]
+        legend_title="Source",
+        plot_bgcolor="white"
     )
 
     # Save the plot as a PNG file
     fig.write_image(plot_filepath)
+
+    # Create a new column for the distance between GPS and IMU points
+    synced_data['distance'] = synced_data.apply(
+        lambda row: euclidean(
+            (row['gps_easting'], row['gps_northing']),
+            (row['imu_easting'], row['imu_northing'])
+        ),
+        axis=1
+    )
+
+    # Find periods where distance is less than or equal to 2 meters
+    synced_data['close_match'] = synced_data['distance'] <= 2
+
+    # Now, find continuous periods where 'close_match' is True
+    matching_periods = []
+    start_time = None
+    end_time = None
+    for i, row in synced_data.iterrows():
+        if row['close_match']:
+            if start_time is None:
+                start_time = row['gps_timestamp']
+            end_time = row['gps_timestamp']
+        else:
+            if start_time is not None and end_time is not None:
+                matching_periods.append((start_time, end_time))
+                start_time = None
+                end_time = None
+    # Don't forget to check the last period if it ends at the end of the data
+    if start_time is not None and end_time is not None:
+        matching_periods.append((start_time, end_time))
+
+    for period in matching_periods:
+        print(f"Close match from {period[0]} to {period[1]}")
+
+    # Calculate the duration of each matching period
+    matching_durations = [(end - start).total_seconds() for start, end in matching_periods]
+
+    # Sum the durations to find the total matching time
+    total_matching_time = sum(matching_durations)
+
+    # Now to estimate how long you could navigate without a fix
+    # Assuming that your initial position is accurately known and that IMU drift accumulates over time,
+    # look at the longest period of close match to get an idea of the maximum time
+    max_continuous_matching_time = max(matching_durations, default=0)
+
+    print("max_continueous_matching_time=", max_continuous_matching_time)
+
 
 
 def plotAltitudeVsTime(csv_filepaths: list, plot_filepath: str, scenario: str):
@@ -263,12 +258,11 @@ if __name__ == '__main__':
     if not os.path.exists(f'{PLOT_DIR}/{filename}'):
         os.makedirs(f'{PLOT_DIR}/{filename}')
     # Convert bag file to csv.
-    if CONVERT_ROSBAG_TO_CSV:
-        convert_rosbag_to_csv(bag_filepaths, csv_filepaths)
+    # if CONVERT_ROSBAG_TO_CSV:
+    #     convert_rosbag_to_csv(bag_filepaths, csv_filepaths)
 
-        # Plot Northing and Easting data.
-        plotNorthingEasting(csv_filepaths,
-                        plot_filepath=f'{PLOT_DIR}/{filename}/{scenario.lower()}NorthingEasting.{IMAGE_EXTENSION}', 
-                        scenario=scenario, 
-                        isLineOfBestFit=False)
+    # Plot Northing and Easting data.
+    plotNorthingEasting(
+                    plot_filepath=f'{PLOT_DIR}/{filename}/{scenario.lower()}NorthingEasting_IMU_GPS.{IMAGE_EXTENSION}', 
+                    scenario=scenario)
     
