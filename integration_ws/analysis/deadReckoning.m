@@ -148,6 +148,41 @@ plot_filtered_heading(imu_data, imu_csv_filepath, plot_path);
 
 
 % Plot 4) Correct Accel data.
+
+% Correction 1: high pass filter
+high_order = 1;
+high_cutoff = 0.01;  % desired cutoff frequency of the filter, Hz
+high_fs = 40;          % sampling frequency
+
+% Apply the high-pass filter to the gyro data
+imu_data.accel_x = butter_highpass_filter(imu_data.accel_x, high_cutoff, high_fs, high_order);
+
+% Correction 2: Correct stationary
+threshold_range = [-0.2, 0.2]
+i = 1
+while i <= length(imu_data.accel_x)
+    if imu_data.accel_x(i) >= threshold_range(1) && imu_data.accel_x(i) <= threshold_range(2)
+        % Find the index that corresponds to the end of the 5-second window from point i
+        end_window_index = find(time_stamps >= time_stamps(i) + duration, 1);
+        
+        % Check if we have reached the end of the time_stamps array
+        if isempty(end_window_index) 
+            end_window_index = length(imu_data.accel_x);
+        end
+        
+        % Check if all the values within the window are within the threshold range
+        if all(imu_data.accel_x(i:end_window_index) >= threshold_range(1) & imu_data.accel_x(i:end_window_index) <= threshold_range(2))
+            % Set all values within the window to zero
+            imu_data.accel_x(i:end_window_index) = 0;
+            
+            % Jump to the point right after the window
+            i = end_window_index;
+        end
+    end
+    i = i + 1; % Move to the next data point
+end
+
+% Correction 3:
 % Calculate the mean acceleration over the entire dataset.
 mean_accel_x = mean(imu_data.accel_x);
 
@@ -157,6 +192,11 @@ corrected_accel_x = imu_data.accel_x - mean_accel_x;
 % Integrate the corrected acceleration to get the corrected velocity.
 imu_velocity_x = cumtrapz(imu_data.stamp, corrected_accel_x);
 imu_velocity_x = lowpass(imu_velocity_x, 0.5, 40);
+for k = 1:length(imu_velocity_x)
+    if imu_velocity_x(k) < 0
+        imu_velocity_x(k) = 0; % Set negative velocities to zero
+    end
+end
 
 % Plot the corrected velocity x
 figure('Position', [100, 100, figWidthPixels, figHeightPixels]);
@@ -205,6 +245,7 @@ ylabel('Velocity (m/s)');
 grid on;
 full_path = fullfile(plot_path, 'plot_5_gps_velocity.png');
 saveas(gcf, full_path);
+
 
 
 % Plot 6) Plot GPS position vs Position obtained from Dead-Reckoning.
